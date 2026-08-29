@@ -16,5 +16,6 @@
       "target": "@components/transitions.css"
     }
   ],
+  "docs": "Give the same id to an element on two routes:\n\n  // app/gallery/page.tsx\n  <Connector id={`tile-${item.id}`}><Thumb /></Connector>\n\n  // app/gallery/[id]/page.tsx\n  <Connector id={`tile-${item.id}`}><Hero /></Connector>\n\nThe browser morphs one into the other. Ids must be unique per page, and\nConnector takes exactly one child element.",
   "type": "registry:component"
 }

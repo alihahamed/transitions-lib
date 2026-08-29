@@ -8,12 +8,26 @@
       "type": "registry:component",
       "title": "Crayon Wipe",
       "description": "Three hand-drawn strokes draw across the screen, the route swaps behind them, then they retract away. GSAP.",
-      "dependencies": ["gsap", "next-transition-router"],
+      "dependencies": [
+        "gsap",
+        "next-transition-router"
+      ],
       "files": [
-        { "path": "registry/transitions/crayon.tsx", "type": "registry:component" },
-        { "path": "registry/transitions/transition-core.tsx", "type": "registry:component" },
-        { "path": "registry/transitions/transitions.css", "type": "registry:file", "target": "@components/transitions.css" }
-      ]
+        {
+          "path": "registry/transitions/crayon.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transition-core.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transitions.css",
+          "type": "registry:file",
+          "target": "@components/transitions.css"
+        }
+      ],
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { CrayonTransition } from \"@/components/crayon\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <CrayonTransition>{children}</CrayonTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically. Recolour with\n--crayon-1, --crayon-2 and --crayon-3 in components/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~1.75s)."
     },
     {
       "name": "connector",
@@ -21,9 +35,17 @@
       "title": "Connector",
       "description": "Shared-element morph. One id on two routes and the browser flies one into the other. No dependencies.",
       "files": [
-        { "path": "registry/transitions/connector.tsx", "type": "registry:component" },
-        { "path": "registry/transitions/transitions.css", "type": "registry:file", "target": "@components/transitions.css" }
-      ]
+        {
+          "path": "registry/transitions/connector.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transitions.css",
+          "type": "registry:file",
+          "target": "@components/transitions.css"
+        }
+      ],
+      "docs": "Give the same id to an element on two routes:\n\n  // app/gallery/page.tsx\n  <Connector id={`tile-${item.id}`}><Thumb /></Connector>\n\n  // app/gallery/[id]/page.tsx\n  <Connector id={`tile-${item.id}`}><Hero /></Connector>\n\nThe browser morphs one into the other. Ids must be unique per page, and\nConnector takes exactly one child element."
     }
   ]
 }
