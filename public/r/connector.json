@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "connector",
+  "title": "Connector",
+  "description": "Shared-element page transition for the Next.js App Router. Give one id to an element on two routes and the browser morphs between them.",
+  "files": [
+    {
+      "path": "registry/transitions/connector.tsx",
+      "content": "import { ViewTransition } from 'react'\nimport './transitions.css'\n\n/**\n * The connector: give the same `id` to an element on two routes and the browser\n * morphs one into the other across the navigation.\n *\n *   // /gallery\n *   <Connector id={`card-${p.id}`}><Card /></Connector>\n *   // /gallery/[id]\n *   <Connector id={`card-${p.id}`}><Hero /></Connector>\n *\n * Ids must be unique per page — two live elements sharing one id cancels the morph.\n * Takes exactly one child element.\n */\nexport function Connector({\n  id,\n  children,\n}: {\n  id: string\n  children: React.ReactNode\n}) {\n  return (\n    <ViewTransition name={id} share=\"t-connector\" default=\"none\">\n      {children}\n    </ViewTransition>\n  )\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/transitions/transitions.css",
+      "content": "/* transitions.css — the connector, on the native View Transitions API.\n   Two knobs. The browser does the geometry; there is nothing to animate by hand. */\n\n:root {\n  --t-duration: 320ms;\n  --t-ease: cubic-bezier(0.32, 0.72, 0, 1);\n}\n\n::view-transition-group(.t-connector),\n::view-transition-old(.t-connector),\n::view-transition-new(.t-connector) {\n  animation-duration: var(--t-duration);\n  animation-timing-function: var(--t-ease);\n}\n\n@media (prefers-reduced-motion: reduce) {\n  ::view-transition-group(*),\n  ::view-transition-old(*),\n  ::view-transition-new(*) {\n    animation-duration: 1ms !important;\n    animation-delay: 0s !important;\n  }\n}\n",
+      "type": "registry:file",
+      "target": "@components/transitions.css"
+    }
+  ],
+  "type": "registry:component"
+}

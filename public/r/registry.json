@@ -1,0 +1,17 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "transitions",
+  "homepage": "https://transitions-lib.vercel.app",
+  "items": [
+    {
+      "name": "connector",
+      "type": "registry:component",
+      "title": "Connector",
+      "description": "Shared-element page transition for the Next.js App Router. Give one id to an element on two routes and the browser morphs between them.",
+      "files": [
+        { "path": "registry/transitions/connector.tsx", "type": "registry:component" },
+        { "path": "registry/transitions/transitions.css", "type": "registry:file", "target": "@components/transitions.css" }
+      ]
+    }
+  ]
+}

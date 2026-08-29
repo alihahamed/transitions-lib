@@ -1,0 +1,23 @@
+/* transitions.css — the connector, on the native View Transitions API.
+   Two knobs. The browser does the geometry; there is nothing to animate by hand. */
+
+:root {
+  --t-duration: 320ms;
+  --t-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+::view-transition-group(.t-connector),
+::view-transition-old(.t-connector),
+::view-transition-new(.t-connector) {
+  animation-duration: var(--t-duration);
+  animation-timing-function: var(--t-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 1ms !important;
+    animation-delay: 0s !important;
+  }
+}
