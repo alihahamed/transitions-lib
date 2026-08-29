@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# transitions
 
-## Getting Started
+Characterful page transitions for the Next.js App Router, installed with the shadcn CLI.
 
-First, run the development server:
+Not fades and slides. Strokes that draw themselves across the screen, swap the route
+behind their own ink, and retract away.
+
+## Install
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx shadcn@latest add https://transitions-lib.vercel.app/r/crayon.json
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then one line in your layout:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```tsx
+// app/layout.tsx
+import { CrayonTransition } from '@/components/crayon'
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <CrayonTransition>{children}</CrayonTransition>
+      </body>
+    </html>
+  )
+}
+```
 
-## Learn More
+That's the whole integration. Your existing `<Link>`s are intercepted automatically —
+nothing else to change.
 
-To learn more about Next.js, take a look at the following resources:
+Recolour with `--crayon-1`, `--crayon-2`, `--crayon-3` in `components/transitions.css`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Writing a transition
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Every transition is the same two things: markup that covers the screen, and two phases
+that move it. `transition-core` handles the rest.
 
-## Deploy on Vercel
+```tsx
+export const MyTransition = createTransition({
+  overlay: <svg>…</svg>,
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+  // Runs once after mount — measure things, set the starting state.
+  setup: (overlay) => { … },
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+  // Plays before the route changes.
+  leave: ({ overlay, done }) => {
+    const tl = gsap.timeline({ onComplete: done })
+    …
+    return () => tl.kill()
+  },
+
+  // Plays after the route changes.
+  enter: ({ overlay, done }) => { … },
+})
+```
+
+The core is **engine-agnostic**. It hands you the overlay element and waits for `done()`.
+Crayon uses GSAP; another transition could use Motion. One engine per transition, never
+both in the same one.
+
+Every transition gets these for free:
+
+- **Link interception** via `next-transition-router`
+- **Timeout failsafe** — if a phase never calls `done()`, the navigation continues anyway,
+  so a broken animation can never trap someone behind an opaque overlay
+- **`prefers-reduced-motion`** — skips the animation and navigates instantly
+
+## Registry
+
+| item | type | dependencies |
+| --- | --- | --- |
+| `crayon` | overlay | `gsap`, `next-transition-router` |
+| `connector` | view transitions | none |
+
+`connector` is a different family — a shared-element morph. Give one `id` to an element on
+two routes and the browser flies one into the other, no animation code at all.
+
+## Known limits
+
+- **Browser back/forward is not animated.** `next-transition-router` has no popstate
+  handling, so history navigation snaps.
+- **Overlay transitions cost real time.** The route does not start loading until the leave
+  phase finishes — crayon is ~1.75s. Right for a portfolio, wrong for an app.
+- **`router.push()` skips the animation** unless you use `useTransitionRouter`.
+- `connector` sits on React's `ViewTransition`, which is still experimental.
+
+## Development
+
+```bash
+npm run dev                  # demo site, doubles as the registry host
+npx shadcn@latest build      # regenerate public/r/*.json from registry.json
+```
