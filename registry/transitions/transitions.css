@@ -30,28 +30,9 @@
   stroke-dashoffset: 99999;
 }
 
-/* ---------- connector (view-transitions type) ---------- */
-
-:root {
-  --t-duration: 320ms;
-  --t-ease: cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-::view-transition-group(.t-connector),
-::view-transition-old(.t-connector),
-::view-transition-new(.t-connector) {
-  animation-duration: var(--t-duration);
-  animation-timing-function: var(--t-ease);
-}
-
+/* transition-core skips the animation entirely; this just guarantees the
+   overlay can never be seen if a phase is mid-flight when the setting flips. */
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation-duration: 1ms !important;
-    animation-delay: 0s !important;
-  }
-  /* Overlay transitions skip animating entirely — see transition-core.tsx. */
   .transition-overlay {
     display: none;
   }

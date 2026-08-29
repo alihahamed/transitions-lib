@@ -70,13 +70,9 @@ Every transition gets these for free:
 
 ## Registry
 
-| item | type | dependencies |
-| --- | --- | --- |
-| `crayon` | overlay | `gsap`, `next-transition-router` |
-| `connector` | view transitions | none |
-
-`connector` is a different family — a shared-element morph. Give one `id` to an element on
-two routes and the browser flies one into the other, no animation code at all.
+| item | dependencies |
+| --- | --- |
+| `crayon` | `gsap`, `next-transition-router` |
 
 ## Known limits
 
@@ -85,7 +81,6 @@ two routes and the browser flies one into the other, no animation code at all.
 - **Overlay transitions cost real time.** The route does not start loading until the leave
   phase finishes — crayon is ~1.75s. Right for a portfolio, wrong for an app.
 - **`router.push()` skips the animation** unless you use `useTransitionRouter`.
-- `connector` sits on React's `ViewTransition`, which is still experimental.
 
 ## Development
 
