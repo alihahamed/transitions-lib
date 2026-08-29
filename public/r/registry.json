@@ -1,13 +1,25 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "transitions",
-  "homepage": "https://transitions-lib.vercel.app",
+  "homepage": "https://github.com/alihahamed/transitions-lib",
   "items": [
+    {
+      "name": "crayon",
+      "type": "registry:component",
+      "title": "Crayon Wipe",
+      "description": "Three hand-drawn strokes draw across the screen, the route swaps behind them, then they retract away. GSAP.",
+      "dependencies": ["gsap", "next-transition-router"],
+      "files": [
+        { "path": "registry/transitions/crayon.tsx", "type": "registry:component" },
+        { "path": "registry/transitions/transition-core.tsx", "type": "registry:component" },
+        { "path": "registry/transitions/transitions.css", "type": "registry:file", "target": "@components/transitions.css" }
+      ]
+    },
     {
       "name": "connector",
       "type": "registry:component",
       "title": "Connector",
-      "description": "Shared-element page transition for the Next.js App Router. Give one id to an element on two routes and the browser morphs between them.",
+      "description": "Shared-element morph. One id on two routes and the browser flies one into the other. No dependencies.",
       "files": [
         { "path": "registry/transitions/connector.tsx", "type": "registry:component" },
         { "path": "registry/transitions/transitions.css", "type": "registry:file", "target": "@components/transitions.css" }

@@ -2,7 +2,7 @@
   "$schema": "https://ui.shadcn.com/schema/registry-item.json",
   "name": "connector",
   "title": "Connector",
-  "description": "Shared-element page transition for the Next.js App Router. Give one id to an element on two routes and the browser morphs between them.",
+  "description": "Shared-element morph. One id on two routes and the browser flies one into the other. No dependencies.",
   "files": [
     {
       "path": "registry/transitions/connector.tsx",
@@ -11,7 +11,7 @@
     },
     {
       "path": "registry/transitions/transitions.css",
-      "content": "/* transitions.css — the connector, on the native View Transitions API.\n   Two knobs. The browser does the geometry; there is nothing to animate by hand. */\n\n:root {\n  --t-duration: 320ms;\n  --t-ease: cubic-bezier(0.32, 0.72, 0, 1);\n}\n\n::view-transition-group(.t-connector),\n::view-transition-old(.t-connector),\n::view-transition-new(.t-connector) {\n  animation-duration: var(--t-duration);\n  animation-timing-function: var(--t-ease);\n}\n\n@media (prefers-reduced-motion: reduce) {\n  ::view-transition-group(*),\n  ::view-transition-old(*),\n  ::view-transition-new(*) {\n    animation-duration: 1ms !important;\n    animation-delay: 0s !important;\n  }\n}\n",
+      "content": "/* transitions.css — shared styling for every transition in the registry. */\n\n/* ---------- overlay shell (used by all overlay-type transitions) ---------- */\n\n.transition-overlay {\n  position: fixed;\n  inset: 0;\n  z-index: 100;\n  pointer-events: none;\n  /* Overscaled so strokes drawn near the edges still cover the corners. */\n  transform: scale(1.5);\n}\n\n.transition-overlay svg {\n  width: 100%;\n  height: 100%;\n}\n\n/* ---------- crayon ---------- */\n\n:root {\n  --crayon-1: #ff2d87;\n  --crayon-2: #aaff00;\n  --crayon-3: #0066ff;\n}\n\n/* Hidden until the first leave phase measures the real path lengths. */\n.transition-overlay path {\n  stroke-dasharray: 99999;\n  stroke-dashoffset: 99999;\n}\n\n/* ---------- connector (view-transitions type) ---------- */\n\n:root {\n  --t-duration: 320ms;\n  --t-ease: cubic-bezier(0.32, 0.72, 0, 1);\n}\n\n::view-transition-group(.t-connector),\n::view-transition-old(.t-connector),\n::view-transition-new(.t-connector) {\n  animation-duration: var(--t-duration);\n  animation-timing-function: var(--t-ease);\n}\n\n@media (prefers-reduced-motion: reduce) {\n  ::view-transition-group(*),\n  ::view-transition-old(*),\n  ::view-transition-new(*) {\n    animation-duration: 1ms !important;\n    animation-delay: 0s !important;\n  }\n  /* Overlay transitions skip animating entirely — see transition-core.tsx. */\n  .transition-overlay {\n    display: none;\n  }\n}\n",
       "type": "registry:file",
       "target": "@components/transitions.css"
     }
