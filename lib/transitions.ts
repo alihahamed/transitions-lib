@@ -46,6 +46,49 @@ export type TransitionMeta = {
 
 export const transitions: TransitionMeta[] = [
   {
+    slug: 'film-burn',
+    name: 'Film Burn',
+    tagline: 'The page catches alight and burns away, and the char burns off after it.',
+    description:
+      'A radial front spreads from the ignition point with its edge chewed up by a displacement map, so the boundary is ragged the way fire is. White-hot at the front, cooling through amber to deep red, with celluloid char behind. The reveal is the same fire continuing — it eats the char away rather than fading it out.',
+    engine: 'GSAP',
+    dependencies: ['gsap', 'next-transition-router'],
+    accent: ['#ffb32e', '#d94a12', '#1e1008'],
+    duration: 1270,
+    usage: `import { FilmBurnTransition } from '@/components/film-burn'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <FilmBurnTransition origin="random">{children}</FilmBurnTransition>
+      </body>
+    </html>
+  )
+}`,
+    props: [
+      { name: 'children', type: 'ReactNode', def: '—', description: 'Your app. Wrap the contents of <body>. (Required)' },
+      { name: 'origin', type: '"random" | "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center"', def: '"random"', description: 'Where the fire starts. "random" picks a fresh corner on every navigation.' },
+      { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole timeline. Above 1 is faster.' },
+      { name: 'burn', type: 'number', def: '0.62', description: 'Seconds the fire takes to consume the page.' },
+      { name: 'reveal', type: 'number', def: '0.5', description: 'Seconds the char takes to burn away again, revealing the new page.' },
+      { name: 'turbulence', type: 'number', def: '78', description: 'How far the ember edge is chewed up. 0 is a clean circle.' },
+    ],
+    controls: [
+      { kind: 'select', key: 'origin', label: 'Origin', options: ['random', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'], def: 'random' },
+      { kind: 'range', key: 'speed', label: 'Speed', min: 0.3, max: 2.5, step: 0.05, def: 1 },
+      { kind: 'range', key: 'burn', label: 'Burn', min: 0.3, max: 2, step: 0.02, def: 0.62 },
+      { kind: 'range', key: 'reveal', label: 'Reveal', min: 0.2, max: 1.5, step: 0.02, def: 0.5 },
+      { kind: 'range', key: 'turbulence', label: 'Edge chew', min: 0, max: 160, step: 4, def: 78 },
+    ],
+    notes: [
+      'Recolour the ember with --burn-core, --burn-hot, --burn-mid and --burn-edge, and the celluloid with --burn-char and --burn-soot.',
+      'No shader and no 3D — an SVG displacement map does the ragged edge for nothing.',
+      'Browser back and forward are not animated — history navigation snaps.',
+    ],
+    ready: true,
+  },
+  {
     slug: 'zipper',
     name: 'Zipper',
     tagline: 'A zip runs down the screen, seals the page, then falls open sideways.',

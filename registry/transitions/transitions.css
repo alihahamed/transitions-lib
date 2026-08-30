@@ -138,3 +138,34 @@
 @media (prefers-reduced-motion: reduce) {
   .zip-rig { display: none }
 }
+
+/* ---------- film burn ---------- */
+
+:root {
+  --burn-core: #fff4dc;
+  --burn-hot: #ffb32e;
+  --burn-mid: #d94a12;
+  --burn-edge: #6b1806;
+  --burn-char: #0a0705;
+  --burn-soot: #1e1008;
+  --burn-lamp: #fff1d0;
+}
+
+.burn {
+  position: absolute;
+  inset: 0;
+  /* the filter is expensive to rasterise; keep it on its own layer */
+  will-change: opacity;
+}
+
+.burn-fill {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .burn { display: none }
+}

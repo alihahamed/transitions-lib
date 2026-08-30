@@ -4,6 +4,36 @@
   "homepage": "https://github.com/alihahamed/transitions-lib",
   "items": [
     {
+      "name": "film-burn",
+      "type": "registry:component",
+      "title": "Film Burn",
+      "description": "The page catches alight from a corner and burns away, then the char burns off to reveal the next one. GSAP, no shader.",
+      "dependencies": [
+        "gsap",
+        "next-transition-router"
+      ],
+      "files": [
+        {
+          "path": "registry/transitions/film-burn.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/burn-art.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transition-core.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transitions.css",
+          "type": "registry:file",
+          "target": "@components/transitions.css"
+        }
+      ],
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { FilmBurnTransition } from \"@/components/film-burn\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <FilmBurnTransition>{children}</FilmBurnTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nBy default the fire starts from a random corner each navigation. Pass\norigin=\"top-left\" (or top-right, bottom-left, bottom-right, center) to fix it.\n\nColour: set --burn-core, --burn-hot, --burn-mid and --burn-edge for the ember\nramp, and --burn-char and --burn-soot for the celluloid, in\ncomponents/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the page has finished burning (~0.8s)."
+    },
+    {
       "name": "zipper",
       "type": "registry:component",
       "title": "Zipper",
