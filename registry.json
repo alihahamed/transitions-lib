@@ -4,6 +4,40 @@
   "homepage": "https://github.com/alihahamed/transitions-lib",
   "items": [
     {
+      "name": "zipper",
+      "type": "registry:component",
+      "title": "Zipper",
+      "description": "A zip runs down the screen, catching twice before it runs, seals the page behind it, then the two halves fall open sideways. GSAP.",
+      "dependencies": [
+        "gsap",
+        "next-transition-router"
+      ],
+      "files": [
+        {
+          "path": "registry/transitions/zipper.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/zipper-rig.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/zipper-art.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transition-core.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transitions.css",
+          "type": "registry:file",
+          "target": "@components/transitions.css"
+        }
+      ],
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { ZipperTransition } from \"@/components/zipper\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <ZipperTransition>{children}</ZipperTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically. Recolour the metal and\ntape with --zip-metal-*, --zip-tape and --zip-tape-lo in\ncomponents/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~1.5s)."
+    },
+    {
       "name": "crayon",
       "type": "registry:component",
       "title": "Crayon Wipe",

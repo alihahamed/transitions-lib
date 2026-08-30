@@ -19,6 +19,34 @@ export type TransitionMeta = {
 
 export const transitions: TransitionMeta[] = [
   {
+    slug: 'zipper',
+    name: 'Zipper',
+    tagline: 'A zip runs down the screen, seals the page, then falls open sideways.',
+    description:
+      'The panels travel in and meet, then a slider runs down the seam — catching twice before it runs, the way a real zip does. The route swaps behind the sealed screen. Coming back, it unzips in one smooth pull and the two halves fall outward with a tilt.',
+    engine: 'GSAP',
+    dependencies: ['gsap', 'next-transition-router'],
+    accent: ['#d7d2c8', '#8f887c', '#3d3d46'],
+    duration: 4840,
+    usage: `import { ZipperTransition } from '@/components/zipper'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <ZipperTransition>{children}</ZipperTransition>
+      </body>
+    </html>
+  )
+}`,
+    notes: [
+      'Recolour the metal with --zip-metal-* and the fabric with --zip-tape in transitions.css.',
+      'Two static chain layers and a clip-path, so a 200-tooth chain costs two transforms a frame.',
+      'Browser back and forward are not animated — history navigation snaps.',
+    ],
+    ready: true,
+  },
+  {
     slug: 'crayon',
     name: 'Crayon',
     tagline: 'Three strokes draw across the screen and take the page with them.',

@@ -30,6 +30,7 @@ export const CrayonTransition = createTransition({
   timeout: 4000,
 
   overlay: (
+    <div className="crayon">
     <svg viewBox="0 0 2453 2535" fill="none" preserveAspectRatio="none">
       {STROKES.map((d, i) => (
         <path
@@ -41,6 +42,7 @@ export const CrayonTransition = createTransition({
         />
       ))}
     </svg>
+    </div>
   ),
 
   // Dash the strokes to their own length so they start fully retracted.

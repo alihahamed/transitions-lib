@@ -1,5 +1,5 @@
 /**
- * Static zipper artwork — prototype.
+ * Zipper artwork.
  *
  * No geometry, only shading: a specular band along each tooth's top edge, a
  * contact shadow beneath, and a slider with a lit top face.
@@ -134,7 +134,7 @@ export function ZipperArt({
   }
 
   return (
-    <svg viewBox={view ?? `0 0 ${W} ${H}`} className="h-full w-full" preserveAspectRatio="xMidYMid slice">
+    <svg viewBox={view ?? `0 0 ${W} ${H}`} className="zip-fill" preserveAspectRatio="xMidYMid slice">
       <defs>
         {/* Real metal is not a linear ramp: a bright rim, a fast falloff, a dark
             core, then light bouncing back up off whatever is underneath. */}

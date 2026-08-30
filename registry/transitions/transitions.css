@@ -7,11 +7,16 @@
   inset: 0;
   z-index: 100;
   pointer-events: none;
-  /* Overscaled so strokes drawn near the edges still cover the corners. */
-  transform: scale(1.5);
+}
+
+/* A scrollbar appearing or vanishing under a full-screen fixed overlay shifts
+   the page out from under it, which reads as the transition being off-centre. */
+html:has(.transition-overlay) {
+  scrollbar-gutter: stable;
 }
 
 .transition-overlay svg {
+  display: block;
   width: 100%;
   height: 100%;
 }
@@ -24,16 +29,68 @@
   --crayon-3: #0066ff;
 }
 
+.crayon {
+  position: absolute;
+  inset: 0;
+  /* Overscaled so strokes drawn near the edges still cover the corners. */
+  transform: scale(1.5);
+}
+
 /* Hidden until the first leave phase measures the real path lengths. */
-.transition-overlay path {
+.crayon path {
   stroke-dasharray: 99999;
   stroke-dashoffset: 99999;
 }
 
-/* transition-core skips the animation entirely; this just guarantees the
-   overlay can never be seen if a phase is mid-flight when the setting flips. */
+/* ---------- zipper ---------- */
+
+:root {
+  --zip-metal-hi: #ffffff;
+  --zip-metal: #d7d2c8;
+  --zip-metal-mid: #8f887c;
+  --zip-metal-lo: #4a453e;
+  --zip-metal-edge: #211f1c;
+  --zip-tape: #3d3d46;
+  --zip-tape-lo: #26262c;
+}
+
+.zip-rig {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.zip-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+}
+
+.zip-band {
+  position: absolute;
+  width: 100%;
+  overflow: hidden;
+}
+
+.zip-band-art {
+  position: absolute;
+}
+
+.zip-slider-layer {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  pointer-events: none;
+}
+
+.zip-fill {
+  height: 100%;
+  width: 100%;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .transition-overlay {
-    display: none;
-  }
+  .zip-rig { display: none }
 }
