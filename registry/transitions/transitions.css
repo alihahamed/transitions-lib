@@ -233,11 +233,17 @@
   isolation: auto;
 }
 
+/*
+ * Origin at the arriving edge, not the centre. Scaling about the centre pulls
+ * the outgoing page away from that edge, so it reads as sliding off rather than
+ * settling behind. Anchored to the edge it recedes into the space the incoming
+ * page is about to occupy, and stays visible above it the whole way.
+ */
 .vt-riser::view-transition-old(root) {
   animation: riser-recede var(--vt-duration, 0.7s) cubic-bezier(0.76, 0, 0.24, 1) both;
   mix-blend-mode: normal;
   z-index: 1;
-  transform-origin: 50% 50%;
+  transform-origin: var(--riser-origin, 50% 0%);
 }
 
 .vt-riser::view-transition-new(root) {
@@ -246,11 +252,14 @@
   z-index: 2;
 }
 
+/* The tilt is what makes it read as depth rather than a shrink — the page
+   leans away from you as it drops back. */
 @keyframes riser-recede {
   to {
-    opacity: var(--riser-dim, 0.4);
-    transform: translate(var(--riser-out-x, 0), var(--riser-out-y, -30vh))
-      scale(var(--riser-depth, 0.8));
+    opacity: var(--riser-dim, 0.35);
+    transform: perspective(1400px) translate3d(var(--riser-out-x, 0), var(--riser-out-y, -8vh), 0)
+      rotateX(var(--riser-tilt-x, 6deg)) rotateY(var(--riser-tilt-y, 0deg))
+      scale(var(--riser-depth, 0.86));
   }
 }
 
@@ -267,26 +276,38 @@
    page recedes the opposite way, so the two read as one movement. */
 .riser-up {
   --riser-from: inset(100% 0% 0% 0%);
-  --riser-out-y: calc(var(--riser-travel, 30vh) * -1);
+  --riser-origin: 50% 0%;
+  --riser-out-y: calc(var(--riser-travel, 8vh) * -1);
   --riser-out-x: 0;
+  --riser-tilt-x: var(--riser-tilt, 6deg);
+  --riser-tilt-y: 0deg;
 }
 
 .riser-down {
   --riser-from: inset(0% 0% 100% 0%);
-  --riser-out-y: var(--riser-travel, 30vh);
+  --riser-origin: 50% 100%;
+  --riser-out-y: var(--riser-travel, 8vh);
   --riser-out-x: 0;
+  --riser-tilt-x: calc(var(--riser-tilt, 6deg) * -1);
+  --riser-tilt-y: 0deg;
 }
 
 .riser-left {
   --riser-from: inset(0% 0% 0% 100%);
-  --riser-out-x: calc(var(--riser-travel-x, 30vw) * -1);
+  --riser-origin: 0% 50%;
+  --riser-out-x: calc(var(--riser-travel-x, 8vw) * -1);
   --riser-out-y: 0;
+  --riser-tilt-x: 0deg;
+  --riser-tilt-y: calc(var(--riser-tilt, 6deg) * -1);
 }
 
 .riser-right {
   --riser-from: inset(0% 100% 0% 0%);
-  --riser-out-x: var(--riser-travel-x, 30vw);
+  --riser-origin: 100% 50%;
+  --riser-out-x: var(--riser-travel-x, 8vw);
   --riser-out-y: 0;
+  --riser-tilt-x: 0deg;
+  --riser-tilt-y: var(--riser-tilt, 6deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
