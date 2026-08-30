@@ -15,7 +15,7 @@ const PITCH = 21 // vertical distance between teeth on one side
 const BASE = 11 // tooth height where it meets the tape
 const HEAD = 17 // tooth height at the tip — the flare is what locks it
 const LEN = 34 // how far a tooth reaches from its tape edge
-const OVERLAP = 9 // how far past centre a meshed tooth crosses
+const OVERLAP = 14 // how far past centre a meshed tooth crosses
 const GAP = 34 // how far each tape sits from centre once fully parted
 const TAPER = 120 // distance below the slider over which the rows fan apart
 
@@ -94,14 +94,15 @@ export function ZipperArt({
   })
   const rightTape = `M ${W} 0 L ${rightEdge.join(' L ')} L ${W} ${H} Z`
 
-  const left = []
-  const right = []
+  // Alternating draw order is what makes a closed zip read as one chain rather
+  // than two columns lying side by side — each tooth overlaps the one before it.
+  const teeth = []
   for (let i = 0; i < Math.ceil(H / PITCH) + 1; i++) {
     const ly = i * PITCH
     const ry = i * PITCH + PITCH / 2 // half-pitch offset so the rows interleave
-    left.push(<Tooth key={i} y={ly} x={lerp(CX + OVERLAP, CX - GAP, parting(ly, sliderY)) - LEN} />)
-    right.push(
-      <Tooth key={i} y={ry} flip x={lerp(CX - OVERLAP, CX + GAP, parting(ry, sliderY)) + LEN} />,
+    teeth.push(
+      <Tooth key={`l${i}`} y={ly} x={lerp(CX + OVERLAP, CX - GAP, parting(ly, sliderY)) - LEN} />,
+      <Tooth key={`r${i}`} y={ry} flip x={lerp(CX - OVERLAP, CX + GAP, parting(ry, sliderY)) + LEN} />,
     )
   }
 
@@ -114,8 +115,8 @@ export function ZipperArt({
             metal-lo instead of near-black. The previous ramp ended almost black
             and began almost white, so every tooth boundary read as an outline. */}
         <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--zip-metal, #d7d2c8)" />
-          <stop offset="8%" stopColor="var(--zip-metal-hi, #ffffff)" />
+          <stop offset="0%" stopColor="var(--zip-metal-lo, #4a453e)" />
+          <stop offset="7%" stopColor="var(--zip-metal, #d7d2c8)" />
           <stop offset="24%" stopColor="var(--zip-metal, #d7d2c8)" />
           <stop offset="49%" stopColor="var(--zip-metal-mid, #8f887c)" />
           <stop offset="74%" stopColor="var(--zip-metal-lo, #4a453e)" />
@@ -124,8 +125,8 @@ export function ZipperArt({
         </linearGradient>
         <linearGradient id="spec" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="rgba(255,255,255,0)" />
-          <stop offset="30%" stopColor="rgba(255,255,255,.55)" />
-          <stop offset="62%" stopColor="rgba(255,255,255,.28)" />
+          <stop offset="30%" stopColor="rgba(255,255,255,.72)" />
+          <stop offset="62%" stopColor="rgba(255,255,255,.34)" />
           <stop offset="100%" stopColor="rgba(255,255,255,0)" />
         </linearGradient>
         <linearGradient id="bounce" x1="0" y1="0" x2="1" y2="0">
@@ -168,8 +169,7 @@ export function ZipperArt({
 
       <path d={leftTape} fill="url(#tape)" />
       <path d={rightTape} fill="url(#tape)" />
-      <g filter="url(#cast)">{left}</g>
-      <g filter="url(#cast)">{right}</g>
+      <g filter="url(#cast)">{teeth}</g>
       {showSlider && <Slider y={progress === 1 ? H - 34 : progress === 0 ? 34 : sliderY} />}
     </svg>
   )
