@@ -1,38 +1,52 @@
 /*
- * The browser stacks the new snapshot above the old one, so masking the old
- * page achieves nothing on its own — the new page is painted over it either
- * way. Lifting the old page above the new one is what makes the mask a hole
- * you can see through.
+ * The ember lives between the two snapshots.
+ *
+ * The old page is masked away inside the burn front. The new page is masked to
+ * show only inside a slightly smaller front. The gap between them is an
+ * annulus, and this amber ramp sits behind both and shows through it — so the
+ * fire is its own colour rather than whatever the pages happen to be.
+ *
+ * It has to be done this way round because CSS applies filter before mask: a
+ * drop-shadow on the old page is computed on the un-holed rectangle and glows
+ * off-screen, never seeing the hole at all.
  */
+/*
+ * The ramp is positioned inside the band, not spread across the whole radius.
+ * Anchoring it to the origin meant that by the time the front was halfway out,
+ * the only part still visible was the cold end of the gradient — dull red
+ * instead of fire.
+ */
+::view-transition-group(root) {
+  animation: none;
+  background:
+    radial-gradient(
+      circle at var(--vt-x, 50%) var(--vt-y, 50%),
+      var(--burn-core, #fff4dc) calc(var(--vt-cut, 0px) - var(--vt-band, 64px)),
+      var(--burn-hot, #ffb32e) calc(var(--vt-cut, 0px) - var(--vt-band, 64px) * 0.68),
+      var(--burn-mid, #d94a12) calc(var(--vt-cut, 0px) - var(--vt-band, 64px) * 0.3),
+      var(--burn-edge, #6b1806) var(--vt-cut, 0px),
+      var(--burn-edge, #6b1806) 100%
+    );
+}
+
 ::view-transition-image-pair(root) {
   isolation: auto;
 }
 
-::view-transition-group(root) {
-  animation: none;
-}
-
+/* The browser stacks the new snapshot above the old one, so the old page has to
+   be lifted for its mask to read as a hole rather than as nothing at all. */
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
   z-index: 1;
+  mask: url(#vt-mask-new);
+  -webkit-mask: url(#vt-mask-new);
 }
 
-/*
- * A mask only carries alpha, so it cuts the hole but cannot colour its edge.
- * Stacked drop-shadows read the alpha channel and bleed inward across the
- * ragged boundary, which gets the ember ramp for nothing — white hot at the
- * cut, cooling out through amber to deep red.
- */
 ::view-transition-old(root) {
   animation: none;
   mix-blend-mode: normal;
   z-index: 2;
-  mask: url(#vt-burn);
-  -webkit-mask: url(#vt-burn);
-  filter:
-    drop-shadow(0 0 1px var(--burn-core, #fff4dc))
-    drop-shadow(0 0 5px var(--burn-hot, #ffb32e))
-    drop-shadow(0 0 16px var(--burn-mid, #d94a12))
-    drop-shadow(0 0 38px var(--burn-edge, #6b1806));
+  mask: url(#vt-mask-old);
+  -webkit-mask: url(#vt-mask-old);
 }

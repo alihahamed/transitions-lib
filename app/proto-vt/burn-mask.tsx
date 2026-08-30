@@ -37,17 +37,33 @@ export function BurnMaskDefs() {
           <feDisplacementMap in="SourceGraphic" in2="n" scale={78} xChannelSelector="R" yChannelSelector="G" />
         </filter>
 
-        <radialGradient id="vt-burn-grad" gradientUnits="userSpaceOnUse" cx={0} cy={0} r={1}>
+        {/* keeps the old page outside the cut */}
+        <radialGradient id="vt-grad-old" gradientUnits="userSpaceOnUse" cx={0} cy={0} r={1}>
           <stop offset="0%" stopColor="#000" />
           <stop offset="0%" stopColor="#000" />
           <stop offset="0%" stopColor="#fff" />
           <stop offset="100%" stopColor="#fff" />
         </radialGradient>
 
+        {/* shows the new page only inside a slightly smaller cut, so an amber
+            annulus is left between the two — that gap is the ember */}
+        <radialGradient id="vt-grad-new" gradientUnits="userSpaceOnUse" cx={0} cy={0} r={1}>
+          <stop offset="0%" stopColor="#fff" />
+          <stop offset="0%" stopColor="#fff" />
+          <stop offset="0%" stopColor="#000" />
+          <stop offset="100%" stopColor="#000" />
+        </radialGradient>
+
         {/* generous region — anything outside a mask counts as hidden */}
-        <mask id="vt-burn" maskUnits="userSpaceOnUse" x={-OVER} y={-OVER} width={8000} height={8000}>
+        <mask id="vt-mask-old" maskUnits="userSpaceOnUse" x={-OVER} y={-OVER} width={8000} height={8000}>
           <g filter="url(#vt-chew)">
-            <rect id="vt-burn-rect" x={-OVER} y={-OVER} width={8000} height={8000} fill="url(#vt-burn-grad)" />
+            <rect x={-OVER} y={-OVER} width={8000} height={8000} fill="url(#vt-grad-old)" />
+          </g>
+        </mask>
+
+        <mask id="vt-mask-new" maskUnits="userSpaceOnUse" x={-OVER} y={-OVER} width={8000} height={8000}>
+          <g filter="url(#vt-chew)">
+            <rect x={-OVER} y={-OVER} width={8000} height={8000} fill="url(#vt-grad-new)" />
           </g>
         </mask>
       </defs>
@@ -74,22 +90,47 @@ export function BurnMaskNav({ href, children }: { href: string; children: React.
       ...[0, vw].flatMap((x) => [0, vh].map((y) => Math.hypot(cx - x, cy - y))),
     ) * 1.02
 
-    const grad = document.getElementById('vt-burn-grad')
-    grad?.setAttribute('cx', String(cx))
-    grad?.setAttribute('cy', String(cy))
-    grad?.setAttribute('r', String(reach))
+    const gOld = document.getElementById('vt-grad-old')
+    const gNew = document.getElementById('vt-grad-new')
+    for (const g of [gOld, gNew]) {
+      g?.setAttribute('cx', String(cx))
+      g?.setAttribute('cy', String(cy))
+      g?.setAttribute('r', String(reach))
+    }
+
+    // the amber sits behind both snapshots and shows through the gap between them
+    const root = document.documentElement
+    root.style.setProperty('--vt-x', `${cx}px`)
+    root.style.setProperty('--vt-y', `${cy}px`)
+    root.style.setProperty('--vt-reach', `${reach}px`)
 
     const t = document.startViewTransition(() => router.push(href))
     await t.ready
 
+    /**
+     * Width of the ember annulus in CSS pixels, not a fraction of the reach.
+     * A proportional band grows as the front travels, so the fire got thicker
+     * and duller the further it went.
+     */
+    const BAND_PX = 64
+    const BAND = BAND_PX / reach
+
     const v = { cut: 0 }
-    const stops = grad ? [...grad.querySelectorAll('stop')] : []
+    const oldStops = gOld ? [...gOld.querySelectorAll('stop')] : []
+    const newStops = gNew ? [...gNew.querySelectorAll('stop')] : []
     const p = (n: number) => `${Math.min(100, Math.max(0, n * 100))}%`
+
     const paint = () => {
-      // black burns through to the new page, white keeps the old one
-      stops[1]?.setAttribute('offset', p(v.cut - 0.004))
-      stops[2]?.setAttribute('offset', p(v.cut + 0.004))
+      // old page: gone inside the cut
+      oldStops[1]?.setAttribute('offset', p(v.cut - 0.004))
+      oldStops[2]?.setAttribute('offset', p(v.cut + 0.004))
+      // new page: only inside the cut less the band
+      newStops[1]?.setAttribute('offset', p(v.cut - BAND))
+      newStops[2]?.setAttribute('offset', p(v.cut - BAND + 0.008))
+      root.style.setProperty('--vt-cut', `${v.cut * reach}px`)
+      root.style.setProperty('--vt-band', `${BAND_PX}px`)
     }
+    paint()
 
     // holds the snapshot on screen for the length of the burn
     document.documentElement.animate(
