@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import gsap from 'gsap'
 import { ZipperRig, DEFAULT_TUNING, type RigTuning } from '@/components/lab/zipper-rig'
-import { zipLeave, zipEnter, zipDuration } from '@/components/lab/zipper-timeline'
+import { zipLeave, zipEnter, zipDuration, DEFAULT_SEAL_HOLD } from '@/components/lab/zipper-timeline'
 
 const knobs: { key: keyof RigTuning; min: number; max: number; step: number; hint: string }[] = [
   { key: 'slide', min: 0, max: 130, step: 2, hint: 'how far each panel travels outward — the main move' },
@@ -21,12 +21,14 @@ export default function ZipperLab() {
   const [swing, setSwing] = useState(0)
   const [t, setT] = useState<RigTuning>(DEFAULT_TUNING)
   const [speed, setSpeed] = useState(1)
+  const [sealHold, setSealHold] = useState(DEFAULT_SEAL_HOLD)
   const tl = useRef<gsap.core.Timeline | null>(null)
 
   const run = (phase: 'leave' | 'enter' | 'cycle') => {
     tl.current?.kill()
     // leave starts from a page on screen; enter starts from a sealed one
-    const from = phase === 'leave' ? { zip: 0, swing: 1 } : { zip: 1, swing: 0 }
+    // a cycle begins where a leave does: page on screen, panels away
+    const from = phase === 'enter' ? { zip: 1, swing: 0 } : { zip: 0, swing: 1 }
     const v = { ...from }
     setZip(v.zip)
     setSwing(v.swing)
@@ -36,12 +38,14 @@ export default function ZipperLab() {
     if (phase === 'cycle') {
       const master = gsap.timeline()
       master.add(zipLeave(v, { speed, onUpdate: sync }))
-      master.add(zipEnter(v, { speed, onUpdate: sync }), '+=0.15')
+      // no gap here — the enter timeline holds at the seal itself, so the real
+      // transition gets the same beat the cycle does
+      master.add(zipEnter(v, { speed, sealHold, onUpdate: sync }))
       tl.current = master
     } else {
       tl.current = phase === 'leave'
         ? zipLeave(v, { speed, onUpdate: sync })
-        : zipEnter(v, { speed, onUpdate: sync })
+        : zipEnter(v, { speed, sealHold, onUpdate: sync })
     }
   }
 
@@ -113,11 +117,23 @@ export default function ZipperLab() {
       <label className="mt-6 block max-w-sm">
         <span className="font-mono text-xs text-muted-foreground">
           speed · {speed.toFixed(2)}x{' '}
-          <span className="opacity-60">— round trip ≈ {zipDuration(speed)}ms</span>
+          <span className="opacity-60">— round trip ≈ {zipDuration(speed, sealHold)}ms</span>
         </span>
         <input
           type="range" min={0.4} max={2.5} step={0.05} value={speed}
           onChange={(e) => setSpeed(+e.target.value)}
+          className="mt-2 w-full"
+        />
+      </label>
+
+      <label className="mt-5 block max-w-sm">
+        <span className="font-mono text-xs text-muted-foreground">
+          seal hold · {sealHold.toFixed(2)}s{' '}
+          <span className="opacity-60">— beat at full cover, where the route swaps</span>
+        </span>
+        <input
+          type="range" min={0} max={1.2} step={0.05} value={sealHold}
+          onChange={(e) => setSealHold(+e.target.value)}
           className="mt-2 w-full"
         />
       </label>

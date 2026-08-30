@@ -8,15 +8,24 @@ type Step = { to: number; dur: number; ease?: string } | { hold: number }
 /**
  * A zip does not close at a constant rate. It catches, you tug, it gives a
  * little, catches again, then runs away once the teeth are properly engaged.
- * Two short pulls with a beat between, then it goes.
  */
 const CLOSING: Step[] = [
-  { to: 0.17, dur: 0.14, ease: 'power2.out' },
-  { hold: 0.09 },
-  { to: 0.36, dur: 0.13, ease: 'power2.out' },
-  { hold: 0.06 },
-  { to: 1, dur: 0.46, ease: 'power1.in' },
+  { to: 0.17, dur: 0.20, ease: 'power2.out' },
+  { hold: 0.13 },
+  { to: 0.36, dur: 0.18, ease: 'power2.out' },
+  { hold: 0.10 },
+  { to: 1, dur: 0.58, ease: 'power1.in' },
 ]
+
+const CLOSING_TIME = CLOSING.reduce((n, s) => n + ('hold' in s ? s.hold : s.dur), 0)
+
+const PANELS_IN = 0.55
+const UNZIP = 0.95
+const PANELS_OUT = 1.05
+const OVERLAP = 0.2
+
+/** Beat between the screen sealing and the zip coming back down. */
+export const DEFAULT_SEAL_HOLD = 0.4
 
 type Opts = {
   /** Multiplies the whole timeline. >1 is faster. */
@@ -31,7 +40,7 @@ export function zipLeave(v: ZipState, { speed = 1, onUpdate, onComplete }: Opts 
 
   // eased both ends — the panels gather speed and settle as they meet, rather
   // than arriving at full tilt
-  tl.to(v, { swing: 0, duration: 0.5, ease: 'power2.inOut' })
+  tl.to(v, { swing: 0, duration: PANELS_IN, ease: 'power2.inOut' })
 
   for (const step of CLOSING) {
     if ('hold' in step) tl.to({}, { duration: step.hold })
@@ -43,20 +52,27 @@ export function zipLeave(v: ZipState, { speed = 1, onUpdate, onComplete }: Opts 
 }
 
 /**
- * Unzipping is one smooth pull — it never catches on the way open. The
- * asymmetry is part of why the closing stutter reads as real.
+ * Sits sealed for a beat — that is when the route swaps, so the pause is doing
+ * real work as well as looking right — then one smooth pull. A zip never
+ * catches on the way open; the asymmetry is why the closing stutter reads as
+ * deliberate rather than as dropped frames.
  */
-export function zipEnter(v: ZipState, { speed = 1, onUpdate, onComplete }: Opts = {}) {
+export function zipEnter(
+  v: ZipState,
+  { speed = 1, sealHold = DEFAULT_SEAL_HOLD, onUpdate, onComplete }: Opts & { sealHold?: number } = {},
+) {
   const tl = gsap.timeline({ onUpdate, onComplete })
 
-  tl.to(v, { zip: 0, duration: 0.68, ease: 'power2.inOut' })
-    .to(v, { swing: 1, duration: 0.9, ease: 'power2.inOut' }, '-=0.18')
+  if (sealHold > 0) tl.to({}, { duration: sealHold })
+
+  tl.to(v, { zip: 0, duration: UNZIP, ease: 'power2.inOut' })
+    .to(v, { swing: 1, duration: PANELS_OUT, ease: 'power2.inOut' }, `-=${OVERLAP}`)
 
   tl.timeScale(speed)
   return tl
 }
 
-const LEAVE = 0.5 + 0.88
-const ENTER = 0.68 + 0.9 - 0.18
-
-export const zipDuration = (speed = 1) => Math.round(((LEAVE + ENTER) / speed) * 1000)
+export const zipDuration = (speed = 1, sealHold = DEFAULT_SEAL_HOLD) =>
+  Math.round(
+    ((PANELS_IN + CLOSING_TIME + sealHold + UNZIP + PANELS_OUT - OVERLAP) / speed) * 1000,
+  )
