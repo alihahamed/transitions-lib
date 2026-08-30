@@ -77,8 +77,8 @@ export default function RootLayout({ children }) {
       { name: 'speed', type: 'number', def: '1', description: 'Divides the duration. Above 1 is faster.' },
       { name: 'depth', type: 'number', def: '0.82', description: 'How far the outgoing page is pushed back, 0 to 1. Smaller is further away.' },
       { name: 'travel', type: 'number', def: '8', description: 'How far the outgoing page travels as it recedes, in viewport units.' },
-      { name: 'tilt', type: 'number', def: '14', description: 'Degrees the outgoing page leans away as it drops back. 0 is a flat scale with no depth.' },
-      { name: 'perspective', type: 'number', def: '900', description: 'Perspective distance in pixels. Shorter is a more dramatic lean.' },
+      { name: 'tilt', type: 'number', def: '18', description: 'Degrees the outgoing page leans away as it drops back. 0 is a flat scale with no depth.' },
+      { name: 'perspective', type: 'number', def: '800', description: 'Perspective distance in pixels. Shorter is a more dramatic lean.' },
       { name: 'dim', type: 'number', def: '0.35', description: 'How dark the outgoing page goes as it falls behind, 0 to 1.' },
     ],
     controls: [
@@ -86,8 +86,8 @@ export default function RootLayout({ children }) {
       { kind: 'range', key: 'duration', label: 'Duration', min: 0.25, max: 2, step: 0.05, def: 0.7 },
       { kind: 'range', key: 'depth', label: 'Depth', min: 0.5, max: 1, step: 0.01, def: 0.82 },
       { kind: 'range', key: 'travel', label: 'Travel', min: 0, max: 40, step: 1, def: 8 },
-      { kind: 'range', key: 'tilt', label: 'Tilt', min: 0, max: 30, step: 1, def: 14 },
-      { kind: 'range', key: 'perspective', label: 'Perspective', min: 500, max: 2200, step: 50, def: 900 },
+      { kind: 'range', key: 'tilt', label: 'Tilt', min: 0, max: 30, step: 1, def: 18 },
+      { kind: 'range', key: 'perspective', label: 'Perspective', min: 500, max: 2200, step: 50, def: 800 },
       { kind: 'range', key: 'dim', label: 'Dim', min: 0, max: 1, step: 0.05, def: 0.35 },
     ],
     notes: [

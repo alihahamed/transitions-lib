@@ -268,9 +268,9 @@
 @keyframes riser-recede {
   to {
     opacity: var(--riser-dim, 0.35);
-    transform: perspective(var(--riser-perspective, 900px))
+    transform: perspective(var(--riser-perspective, 800px))
       translate3d(var(--riser-out-x, 0), var(--riser-out-y, -8vh), 0)
-      rotateX(var(--riser-tilt-x, 14deg)) rotateY(var(--riser-tilt-y, 0deg))
+      rotateX(var(--riser-tilt-x, 18deg)) rotateY(var(--riser-tilt-y, 0deg))
       scale(var(--riser-depth, 0.82));
   }
 }
@@ -293,7 +293,7 @@
   --riser-origin: 50% 0%;
   --riser-out-y: calc(var(--riser-travel, 8vh) * -1);
   --riser-out-x: 0;
-  --riser-tilt-x: var(--riser-tilt, 6deg);
+  --riser-tilt-x: var(--riser-tilt, 18deg);
   --riser-tilt-y: 0deg;
 }
 
@@ -304,7 +304,7 @@
   --riser-origin: 50% 100%;
   --riser-out-y: var(--riser-travel, 8vh);
   --riser-out-x: 0;
-  --riser-tilt-x: calc(var(--riser-tilt, 6deg) * -1);
+  --riser-tilt-x: calc(var(--riser-tilt, 18deg) * -1);
   --riser-tilt-y: 0deg;
 }
 
@@ -316,7 +316,7 @@
   --riser-out-x: calc(var(--riser-travel-x, 8vw) * -1);
   --riser-out-y: 0;
   --riser-tilt-x: 0deg;
-  --riser-tilt-y: calc(var(--riser-tilt, 6deg) * -1);
+  --riser-tilt-y: calc(var(--riser-tilt, 18deg) * -1);
 }
 
 .riser-right {
@@ -327,7 +327,7 @@
   --riser-out-x: var(--riser-travel-x, 8vw);
   --riser-out-y: 0;
   --riser-tilt-x: 0deg;
-  --riser-tilt-y: var(--riser-tilt, 6deg);
+  --riser-tilt-y: var(--riser-tilt, 18deg);
 }
 
 @media (prefers-reduced-motion: reduce) {

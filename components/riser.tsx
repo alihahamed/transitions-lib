@@ -28,8 +28,8 @@ const DEFAULTS: RiserOptions = {
   speed: 1,
   depth: 0.82,
   travel: 8,
-  tilt: 14,
-  perspective: 900,
+  tilt: 18,
+  perspective: 800,
   dim: 0.35,
 }
 
