@@ -13,6 +13,8 @@ export type TransitionMeta = {
   duration: number
   usage: string
   notes: string[]
+  /** Palette presets, if the transition ships any. */
+  swatches?: { name: string; from: string; to: string }[]
   /** false while a transition is still being built. */
   ready: boolean
 }
@@ -39,8 +41,16 @@ export default function RootLayout({ children }) {
     </html>
   )
 }`,
+    swatches: [
+      { name: 'nickel', from: '#ffffff', to: '#211f1c' },
+      { name: 'steel', from: '#f8fbfe', to: '#171b20' },
+      { name: 'brass', from: '#fff8dd', to: '#2b2107' },
+      { name: 'gunmetal', from: '#c6ccd4', to: '#101216' },
+      { name: 'copper', from: '#ffe9d6', to: '#23110a' },
+    ],
     notes: [
-      'Recolour the metal with --zip-metal-* and the fabric with --zip-tape in transitions.css.',
+      'Five presets ship as classes — put zip-brass, zip-steel, zip-gunmetal or zip-copper on any ancestor.',
+      'Or set --zip-metal-hi/-metal/-mid/-lo/-edge and --zip-tape/-lo yourself for any colour you like.',
       'Two static chain layers and a clip-path, so a 200-tooth chain costs two transforms a frame.',
       'Browser back and forward are not animated — history navigation snaps.',
     ],

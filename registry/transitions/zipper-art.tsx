@@ -32,6 +32,7 @@ const OVERLAP = 14 // how far past centre a meshed tooth crosses
 const GAP = 60 // how far each tape sits from centre once fully parted
 const TAPER = 150 // distance below the slider over which the rows fan apart
 
+export const SLIDER_INSET = 40 // how far the parked slider sits from each edge
 const SLIDER_W = 52
 const SLIDER_H = 72
 
@@ -100,7 +101,10 @@ export function ZipperArt({
   /** Off when the rig draws the slider in its own layer, above the hinged panels. */
   showSlider?: boolean
 }) {
-  const sliderY = progress * H // 1 = closed, slider has run all the way down
+  // Continuous across the whole range on purpose. Special-casing the ends made
+  // the slider jump ~34 units the instant progress hit exactly 0 or 1, which
+  // read as the travel stuttering backwards and repeating itself.
+  const sliderY = SLIDER_INSET + progress * (H - SLIDER_INSET * 2)
 
   // Tape inner edges follow the same taper the teeth do, so fabric and metal
   // fan out together instead of the tape stepping open in one jump.
@@ -199,7 +203,7 @@ export function ZipperArt({
       <path d={leftTape} fill="url(#tape)" />
       <path d={rightTape} fill="url(#tape)" />
       <g filter="url(#cast)">{teeth}</g>
-      {showSlider && <Slider y={progress === 1 ? H - 34 : progress === 0 ? 34 : sliderY} />}
+      {showSlider && <Slider y={sliderY} />}
     </svg>
   )
 }

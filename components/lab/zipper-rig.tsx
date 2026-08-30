@@ -1,6 +1,6 @@
 'use client'
 
-import { ZipperArt, Slider, ZIPPER_DIMS, DEFAULT_PITCH, DEFAULT_HEAD } from './zipper-art'
+import { ZipperArt, Slider, ZIPPER_DIMS, DEFAULT_PITCH, DEFAULT_HEAD, SLIDER_INSET } from './zipper-art'
 import { PALETTES, type PaletteName } from './zipper-palettes'
 
 export type RigTuning = {
@@ -100,7 +100,7 @@ export function ZipperRig({
   behind?: React.ReactNode
 }) {
   const { W, H } = ZIPPER_DIMS
-  const sliderY = zip === 1 ? H - 34 : zip === 0 ? 34 : zip * H
+  const sliderY = SLIDER_INSET + zip * (H - SLIDER_INSET * 2)
 
   return (
     <div

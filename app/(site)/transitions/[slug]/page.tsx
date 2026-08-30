@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { transitions, bySlug, installCommand } from '@/lib/transitions'
 import { CodeBlock } from '@/components/site/code-block'
+import { PreviewFrame } from '@/components/site/preview-frame'
 
 export function generateStaticParams() {
   return transitions.map(({ slug }) => ({ slug }))
@@ -32,26 +33,8 @@ export default async function TransitionPage({ params }: PageProps<'/transitions
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">{t.tagline}</p>
       </header>
 
-      {/* Preview — a real two-route app in a frame, so the navigation is genuine
-          and cannot collide with the docs site's own routing. */}
       <section className="mt-10">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-sm font-medium">Preview</h2>
-          <a
-            href={`/preview/${t.slug}`}
-            target="_blank"
-            className="font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            open full size ↗
-          </a>
-        </div>
-        <div className="mt-3 overflow-hidden rounded-xl border border-border">
-          <iframe
-            src={`/preview/${t.slug}`}
-            title={`${t.name} preview`}
-            className="block h-[420px] w-full bg-background"
-          />
-        </div>
+        <PreviewFrame slug={t.slug} title={t.name} swatches={t.swatches} />
       </section>
 
       <section className="mt-12">
@@ -77,6 +60,31 @@ export default async function TransitionPage({ params }: PageProps<'/transitions
         <h2 className="text-sm font-medium">How it works</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t.description}</p>
       </section>
+
+      {t.swatches && (
+        <section className="mt-12">
+          <h2 className="text-sm font-medium">Colour</h2>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            Every colour reads from a CSS variable, so a preset is only a class. Put one
+            on any ancestor of the transition, or set the variables yourself for anything
+            the presets do not cover.
+          </p>
+          <div className="mt-3">
+            <CodeBlock
+              label="app/globals.css"
+              code={`:root {
+  --zip-metal-hi:   #ffffff;
+  --zip-metal:      #d7d2c8;
+  --zip-metal-mid:  #8f887c;
+  --zip-metal-lo:   #4a453e;
+  --zip-metal-edge: #211f1c;
+  --zip-tape:       #3d3d46;
+  --zip-tape-lo:    #26262c;
+}`}
+            />
+          </div>
+        </section>
+      )}
 
       <section className="mt-12">
         <h2 className="text-sm font-medium">Worth knowing</h2>

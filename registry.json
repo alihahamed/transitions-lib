@@ -35,7 +35,7 @@
           "target": "@components/transitions.css"
         }
       ],
-      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { ZipperTransition } from \"@/components/zipper\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <ZipperTransition>{children}</ZipperTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically. Recolour the metal and\ntape with --zip-metal-*, --zip-tape and --zip-tape-lo in\ncomponents/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~1.5s)."
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { ZipperTransition } from \"@/components/zipper\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <ZipperTransition>{children}</ZipperTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nColour: five presets ship as classes \u2014 put zip-steel, zip-brass, zip-gunmetal\nor zip-copper on any ancestor of the transition. For anything else, set\n--zip-metal-hi/-metal/-mid/-lo/-edge and --zip-tape/-lo yourself in\ncomponents/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~1.5s)."
     },
     {
       "name": "crayon",
