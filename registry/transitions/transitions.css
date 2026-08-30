@@ -246,36 +246,50 @@
   transform-origin: var(--riser-origin, 50% 0%);
 }
 
+/*
+ * The incoming page slides in as a card rather than being clipped into view. A
+ * clip reveal has no edge and casts nothing, so there is no cue that one page
+ * is above the other — the shadow is what actually sells the layering.
+ */
 .vt-riser::view-transition-new(root) {
   animation: riser-arrive var(--vt-duration, 0.7s) cubic-bezier(0.76, 0, 0.24, 1) both;
   mix-blend-mode: normal;
   z-index: 2;
+  box-shadow: var(--riser-shadow, 0 -24px 60px rgba(0, 0, 0, 0.45));
 }
 
 /* The tilt is what makes it read as depth rather than a shrink — the page
    leans away from you as it drops back. */
+/*
+ * Perspective distance matters as much as the angle. At 1400px a 6deg lean
+ * narrows the far edge by about 6%, which reads as nothing at all; 900px and
+ * 14deg takes it to 80%, which is unmistakably a page leaning away.
+ */
 @keyframes riser-recede {
   to {
     opacity: var(--riser-dim, 0.35);
-    transform: perspective(1400px) translate3d(var(--riser-out-x, 0), var(--riser-out-y, -8vh), 0)
-      rotateX(var(--riser-tilt-x, 6deg)) rotateY(var(--riser-tilt-y, 0deg))
-      scale(var(--riser-depth, 0.86));
+    transform: perspective(var(--riser-perspective, 900px))
+      translate3d(var(--riser-out-x, 0), var(--riser-out-y, -8vh), 0)
+      rotateX(var(--riser-tilt-x, 14deg)) rotateY(var(--riser-tilt-y, 0deg))
+      scale(var(--riser-depth, 0.82));
   }
 }
 
 @keyframes riser-arrive {
   from {
-    clip-path: var(--riser-from, inset(100% 0% 0% 0%));
+    transform: translate3d(var(--riser-in-x, 0), var(--riser-in-y, 100%), 0);
   }
   to {
-    clip-path: inset(0% 0% 0% 0%);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 /* The incoming page is unmasked from the edge it arrives at, and the outgoing
    page recedes the opposite way, so the two read as one movement. */
 .riser-up {
-  --riser-from: inset(100% 0% 0% 0%);
+  --riser-in-y: 100%;
+  --riser-in-x: 0;
+  --riser-shadow: 0 -24px 60px rgba(0,0,0,.45);
   --riser-origin: 50% 0%;
   --riser-out-y: calc(var(--riser-travel, 8vh) * -1);
   --riser-out-x: 0;
@@ -284,7 +298,9 @@
 }
 
 .riser-down {
-  --riser-from: inset(0% 0% 100% 0%);
+  --riser-in-y: -100%;
+  --riser-in-x: 0;
+  --riser-shadow: 0 24px 60px rgba(0,0,0,.45);
   --riser-origin: 50% 100%;
   --riser-out-y: var(--riser-travel, 8vh);
   --riser-out-x: 0;
@@ -293,7 +309,9 @@
 }
 
 .riser-left {
-  --riser-from: inset(0% 0% 0% 100%);
+  --riser-in-y: 0;
+  --riser-in-x: 100%;
+  --riser-shadow: -24px 0 60px rgba(0,0,0,.45);
   --riser-origin: 0% 50%;
   --riser-out-x: calc(var(--riser-travel-x, 8vw) * -1);
   --riser-out-y: 0;
@@ -302,7 +320,9 @@
 }
 
 .riser-right {
-  --riser-from: inset(0% 100% 0% 0%);
+  --riser-in-y: 0;
+  --riser-in-x: -100%;
+  --riser-shadow: 24px 0 60px rgba(0,0,0,.45);
   --riser-origin: 100% 50%;
   --riser-out-x: var(--riser-travel-x, 8vw);
   --riser-out-y: 0;

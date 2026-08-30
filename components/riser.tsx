@@ -16,6 +16,8 @@ export type RiserOptions = {
   travel: number
   /** Degrees the outgoing page leans away as it drops back. 0 is a flat scale. */
   tilt: number
+  /** Perspective distance in pixels. Shorter is a more dramatic lean. */
+  perspective: number
   /** How dark the outgoing page goes as it falls behind, 0 to 1. */
   dim: number
 }
@@ -24,9 +26,10 @@ const DEFAULTS: RiserOptions = {
   direction: 'up',
   duration: 0.7,
   speed: 1,
-  depth: 0.86,
+  depth: 0.82,
   travel: 8,
-  tilt: 6,
+  tilt: 14,
+  perspective: 900,
   dim: 0.35,
 }
 
@@ -47,6 +50,7 @@ export const RiserTransition = createViewTransition<RiserOptions>({
     root.style.setProperty('--riser-travel', `${o.travel}vh`)
     root.style.setProperty('--riser-travel-x', `${o.travel}vw`)
     root.style.setProperty('--riser-tilt', `${o.tilt}deg`)
+    root.style.setProperty('--riser-perspective', `${o.perspective}px`)
     root.style.setProperty('--riser-dim', String(o.dim))
 
     for (const d of ['up', 'down', 'left', 'right']) {
