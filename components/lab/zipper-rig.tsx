@@ -4,7 +4,8 @@ import { ZipperArt, Slider, ZIPPER_DIMS } from './zipper-art'
 
 export type RigTuning = {
   bands: number
-  angle: number // how far a panel swings away at full open
+  slide: number // % of its own width each panel travels outward — the main move
+  angle: number // a little rotateY for depth; large values foreshorten the teeth to slivers
   lag: number // temporal: each band starts this much later than the one above
   fan: number // spatial: each band swings this much further than the one above
   droop: number // degrees of outward tip on the lowest band
@@ -14,12 +15,13 @@ export type RigTuning = {
 
 export const DEFAULT_TUNING: RigTuning = {
   bands: 1,
-  angle: 62,
+  slide: 100,
+  angle: 8,
   lag: 0.05,
   fan: 0.08,
-  droop: 5,
-  fall: 26,
-  shade: 0.35,
+  droop: 4,
+  fall: 30,
+  shade: 0.18,
 }
 
 const bandSwing = (swing: number, i: number, t: RigTuning) => {
@@ -44,7 +46,7 @@ function Panel({
     <div className="absolute inset-y-0 w-1/2" style={{ [side]: 0, transformStyle: 'preserve-3d' }}>
       {Array.from({ length: t.bands }, (_, i) => {
         const s = bandSwing(swing, i, t)
-        const depth = t.bands === 1 ? 0 : i / (t.bands - 1)
+        const depth = t.bands === 1 ? 1 : i / (t.bands - 1)
         return (
           <div
             key={i}
@@ -53,7 +55,8 @@ function Panel({
               top: `${(i * 100) / t.bands}%`,
               height: `${100 / t.bands}%`,
               transformOrigin: `${side} center`,
-              transform: `rotateY(${dir * s * t.angle * (1 + i * t.fan)}deg)
+              transform: `translateX(${dir * s * t.slide * (1 + i * t.fan)}%)
+                          rotateY(${dir * s * t.angle}deg)
                           rotateZ(${dir * s * t.droop * depth}deg)
                           translateY(${s * t.fall * depth}px)`,
               filter: `brightness(${1 - s * t.shade * (0.4 + 0.6 * depth)})`,

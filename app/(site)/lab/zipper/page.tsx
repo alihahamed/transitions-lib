@@ -5,8 +5,9 @@ import gsap from 'gsap'
 import { ZipperRig, DEFAULT_TUNING, type RigTuning } from '@/components/lab/zipper-rig'
 
 const knobs: { key: keyof RigTuning; min: number; max: number; step: number; hint: string }[] = [
+  { key: 'slide', min: 0, max: 130, step: 2, hint: 'how far each panel travels outward — the main move' },
+  { key: 'angle', min: 0, max: 40, step: 1, hint: 'depth tilt; past ~15 the teeth foreshorten to slivers' },
   { key: 'bands', min: 1, max: 16, step: 1, hint: '1 = rigid board, more = floppier fabric' },
-  { key: 'angle', min: 0, max: 90, step: 1, hint: 'how far each panel swings away' },
   { key: 'lag', min: 0, max: 0.1, step: 0.005, hint: 'how much the lower bands trail' },
   { key: 'fan', min: 0, max: 0.25, step: 0.01, hint: 'how much further the lower bands go' },
   { key: 'droop', min: 0, max: 20, step: 1, hint: 'outward tip from gravity' },
@@ -35,10 +36,9 @@ export default function ZipperLab() {
     <main className="mx-auto w-full max-w-5xl px-6 py-16">
       <h1 className="text-3xl font-semibold tracking-tight">Zipper — motion rig</h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-        Each side hinges at the screen edge rather than sliding. Bands let the lower half
-        trail and swing further, so it fans like fabric — but every band boundary slices
-        the teeth it crosses, so <span className="text-foreground">bands=1</span> (rigid)
-        is the honest default until the faceting is worth the cost.
+        The panels travel outward and part, with only a little tilt for depth — heavy
+        rotateY foreshortens the teeth into unreadable slivers. Droop and sag carry the
+        falling-sideways read instead.
       </p>
 
       <div className="mt-8 h-[520px] overflow-hidden rounded-xl border border-border">
