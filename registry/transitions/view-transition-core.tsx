@@ -4,6 +4,13 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 
 export type ViewTransitionConfig<O> = {
+  /**
+   * Scopes this transition's stylesheet. The core puts `vt-<name>` on the
+   * document element for the duration of the navigation, so two installed
+   * transitions cannot both claim ::view-transition-old(root) — and neither
+   * restyles a view transition it did not start.
+   */
+  name: string
   /** Values a consumer may override as props. */
   defaults: O
   /**
@@ -14,8 +21,11 @@ export type ViewTransitionConfig<O> = {
   defs: ReactNode | ((options: O) => ReactNode)
   /** Runs once per navigation, before the snapshot is taken. */
   prepare?: (options: O) => void
-  /** Drives one frame. progress runs 0 to 1. */
-  paint: (progress: number, options: O) => void
+  /**
+   * Drives one frame. progress runs 0 to 1. Omit it when the stylesheet does
+   * the animating — the core still holds the snapshot open for the duration.
+   */
+  paint?: (progress: number, options: O) => void
   /** Seconds the transition should last. */
   duration: (options: O) => number
 }
@@ -74,16 +84,23 @@ export function createViewTransition<O extends object>(config: ViewTransitionCon
 
         try {
           config.prepare?.(o)
-          config.paint(0, o)
+          config.paint?.(0, o)
         } catch (error) {
           console.error('[transition] prepare failed, navigating plainly', error)
           router.push(href)
           return
         }
 
+        const root = document.documentElement
+        root.classList.add(`vt-${config.name}`)
+        root.style.setProperty('--vt-duration', `${seconds}s`)
+
         const transition = document.startViewTransition(() => {
           router.push(href)
         })
+
+        const cleanup = () => root.classList.remove(`vt-${config.name}`)
+        transition.finished.then(cleanup, cleanup)
 
         transition.ready
           .then(() => {
@@ -95,11 +112,13 @@ export function createViewTransition<O extends object>(config: ViewTransitionCon
               { duration: seconds * 1000, pseudoElement: '::view-transition-old(root)' },
             )
 
+            if (!config.paint) return
+
             const start = performance.now()
             const step = () => {
               const t = Math.min(1, (performance.now() - start) / (seconds * 1000))
               try {
-                config.paint(t, o)
+                config.paint!(t, o)
               } catch (error) {
                 console.error('[transition] paint failed', error)
                 return

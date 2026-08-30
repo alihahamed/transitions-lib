@@ -182,7 +182,7 @@
   --burn-edge: #0d3a0a;
 }
 
-::view-transition-group(root) {
+.vt-film-burn ::view-transition-group(root) {
   animation: none;
   background:
     radial-gradient(
@@ -195,14 +195,14 @@
     );
 }
 
-::view-transition-image-pair(root) {
+.vt-film-burn ::view-transition-image-pair(root) {
   isolation: auto;
 }
 
 /* The browser stacks the incoming snapshot above the outgoing one, so the
    outgoing page has to be lifted for its mask to read as a hole rather than as
    nothing at all. */
-::view-transition-new(root) {
+.vt-film-burn ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
   z-index: 1;
@@ -210,10 +210,88 @@
   -webkit-mask: url(#burn-mask-new);
 }
 
-::view-transition-old(root) {
+.vt-film-burn ::view-transition-old(root) {
   animation: none;
   mix-blend-mode: normal;
   z-index: 2;
   mask: url(#burn-mask-old);
   -webkit-mask: url(#burn-mask-old);
+}
+
+/* ---------- riser ---------- */
+
+/*
+ * Nothing here is driven from JavaScript. The outgoing page is pushed back and
+ * dimmed, the incoming page is unmasked over it, and the browser runs both off
+ * the stylesheet — which is why this one needs no dependencies at all.
+ */
+.vt-riser::view-transition-group(root) {
+  animation: none;
+}
+
+.vt-riser::view-transition-image-pair(root) {
+  isolation: auto;
+}
+
+.vt-riser::view-transition-old(root) {
+  animation: riser-recede var(--vt-duration, 0.7s) cubic-bezier(0.76, 0, 0.24, 1) both;
+  mix-blend-mode: normal;
+  z-index: 1;
+  transform-origin: 50% 50%;
+}
+
+.vt-riser::view-transition-new(root) {
+  animation: riser-arrive var(--vt-duration, 0.7s) cubic-bezier(0.76, 0, 0.24, 1) both;
+  mix-blend-mode: normal;
+  z-index: 2;
+}
+
+@keyframes riser-recede {
+  to {
+    opacity: var(--riser-dim, 0.4);
+    transform: translate(var(--riser-out-x, 0), var(--riser-out-y, -30vh))
+      scale(var(--riser-depth, 0.8));
+  }
+}
+
+@keyframes riser-arrive {
+  from {
+    clip-path: var(--riser-from, inset(100% 0% 0% 0%));
+  }
+  to {
+    clip-path: inset(0% 0% 0% 0%);
+  }
+}
+
+/* The incoming page is unmasked from the edge it arrives at, and the outgoing
+   page recedes the opposite way, so the two read as one movement. */
+.riser-up {
+  --riser-from: inset(100% 0% 0% 0%);
+  --riser-out-y: calc(var(--riser-travel, 30vh) * -1);
+  --riser-out-x: 0;
+}
+
+.riser-down {
+  --riser-from: inset(0% 0% 100% 0%);
+  --riser-out-y: var(--riser-travel, 30vh);
+  --riser-out-x: 0;
+}
+
+.riser-left {
+  --riser-from: inset(0% 0% 0% 100%);
+  --riser-out-x: calc(var(--riser-travel-x, 30vw) * -1);
+  --riser-out-y: 0;
+}
+
+.riser-right {
+  --riser-from: inset(0% 100% 0% 0%);
+  --riser-out-x: var(--riser-travel-x, 30vw);
+  --riser-out-y: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-riser::view-transition-old(root),
+  .vt-riser::view-transition-new(root) {
+    animation: none;
+  }
 }

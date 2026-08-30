@@ -48,6 +48,52 @@ export type TransitionMeta = {
 
 export const transitions: TransitionMeta[] = [
   {
+    slug: 'riser',
+    name: 'Riser',
+    tagline: 'The page behind drops back while the next one rises over it.',
+    description:
+      'The outgoing page is pushed back into depth — smaller, dimmer, travelling away — while the incoming page is unmasked over it from whichever edge it arrives at. The two read as one movement rather than a swap, because the page you are leaving stays visible long enough to see it recede. Both halves are a transform and a clip-path, so the stylesheet animates it and no JavaScript touches a frame.',
+    engine: 'Native',
+    dependencies: [],
+    accent: ['#f4f2ee', '#7a7a80', '#141416'],
+    duration: 700,
+    requires:
+      'The View Transitions API — Chrome 111+, Safari 18+, Firefox 132+. Older browsers navigate normally with no animation. Nothing breaks, but there is no fallback effect.',
+    usage: `import { RiserTransition } from '@/components/riser'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <RiserTransition direction="up">{children}</RiserTransition>
+      </body>
+    </html>
+  )
+}`,
+    props: [
+      { name: 'children', type: 'ReactNode', def: '—', description: 'Your app. Wrap the contents of <body>. (Required)' },
+      { name: 'direction', type: '"up" | "down" | "left" | "right"', def: '"up"', description: 'Which edge the incoming page arrives from. The outgoing page recedes the opposite way.' },
+      { name: 'duration', type: 'number', def: '0.7', description: 'Seconds the swap takes.' },
+      { name: 'speed', type: 'number', def: '1', description: 'Divides the duration. Above 1 is faster.' },
+      { name: 'depth', type: 'number', def: '0.8', description: 'How far the outgoing page is pushed back, 0 to 1. Smaller is further away.' },
+      { name: 'travel', type: 'number', def: '30', description: 'How far the outgoing page travels as it recedes, in viewport units.' },
+      { name: 'dim', type: 'number', def: '0.4', description: 'How dark the outgoing page goes as it falls behind, 0 to 1.' },
+    ],
+    controls: [
+      { kind: 'select', key: 'direction', label: 'Direction', options: ['up', 'down', 'left', 'right'], def: 'up' },
+      { kind: 'range', key: 'duration', label: 'Duration', min: 0.25, max: 2, step: 0.05, def: 0.7 },
+      { kind: 'range', key: 'depth', label: 'Depth', min: 0.5, max: 1, step: 0.01, def: 0.8 },
+      { kind: 'range', key: 'travel', label: 'Travel', min: 0, max: 70, step: 2, def: 30 },
+      { kind: 'range', key: 'dim', label: 'Dim', min: 0, max: 1, step: 0.05, def: 0.4 },
+    ],
+    notes: [
+      'No dependencies and no JavaScript animating anything — the stylesheet drives both halves.',
+      'Nothing is assumed about your markup. It does not reach into your headings or split any text.',
+      'Browser back and forward are not animated — history navigation snaps.',
+    ],
+    ready: true,
+  },
+  {
     slug: 'film-burn',
     name: 'Film Burn',
     tagline: 'The page catches alight and the fire burns straight through it.',

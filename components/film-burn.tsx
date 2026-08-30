@@ -131,6 +131,7 @@ function Defs({ options }: { options: FilmBurnOptions }) {
 }
 
 export const FilmBurnTransition = createViewTransition<FilmBurnOptions>({
+  name: 'film-burn',
   defaults: DEFAULTS,
   defs: (options) => <Defs options={options} />,
   duration: (o) => o.duration / o.speed,

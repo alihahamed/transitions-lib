@@ -4,6 +4,29 @@
   "homepage": "https://github.com/alihahamed/transitions-lib",
   "items": [
     {
+      "name": "riser",
+      "type": "registry:component",
+      "title": "Riser",
+      "description": "The outgoing page drops back into depth while the incoming page is unmasked over it. No dependencies and no JavaScript animating anything \u2014 the stylesheet drives it.",
+      "dependencies": [],
+      "files": [
+        {
+          "path": "registry/transitions/riser.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/view-transition-core.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transitions.css",
+          "type": "registry:file",
+          "target": "@components/transitions.css"
+        }
+      ],
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { RiserTransition } from \"@/components/riser\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <RiserTransition direction=\"up\">{children}</RiserTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s and <a>s are intercepted automatically. New tabs,\nmodified clicks, downloads, external links and same-page hashes are left alone.\n\ndirection takes up, down, left or right \u2014 the incoming page is unmasked from\nthat edge and the outgoing page recedes the opposite way.\n\nNeeds the View Transitions API: Chrome 111+, Safari 18+, Firefox 132+. Older\nbrowsers navigate normally with no animation."
+    },
+    {
       "name": "film-burn",
       "type": "registry:component",
       "title": "Film Burn",
