@@ -40,6 +40,8 @@ export type TransitionMeta = {
   controls: Control[]
   /** State the harness can scrub, if the transition renders from one. */
   scrub?: { key: string; label: string }[]
+  /** Shown as a notice on the detail page when a transition needs something. */
+  requires?: string
   /** false while a transition is still being built. */
   ready: boolean
 }
@@ -48,20 +50,22 @@ export const transitions: TransitionMeta[] = [
   {
     slug: 'film-burn',
     name: 'Film Burn',
-    tagline: 'The page catches alight and burns away, and the char burns off after it.',
+    tagline: 'The page catches alight and the fire burns straight through it.',
     description:
-      'A radial front spreads from the ignition point with its edge chewed up by a displacement map, so the boundary is ragged the way fire is. White-hot at the front, cooling through amber to deep red, with celluloid char behind. The reveal is the same fire continuing — it eats the char away rather than fading it out.',
-    engine: 'GSAP',
-    dependencies: ['gsap', 'next-transition-router'],
-    accent: ['#ffb32e', '#d94a12', '#1e1008'],
-    duration: 1770,
+      "A ragged front spreads from the ignition point, its edge chewed up by a displacement map so the boundary moves the way fire does. The outgoing page is masked away inside the front and the incoming page is masked to show only inside a slightly smaller one, which leaves a burning annulus between them — the fire is its own colour rather than a tint of whichever pages happen to be on screen. One continuous burn, no char and no covered beat, because the browser holds a snapshot of the page you are leaving while the page you are arriving at is already rendered underneath it.",
+    engine: 'Native',
+    dependencies: [],
+    accent: ['#fff4dc', '#ffb32e', '#6b1806'],
+    duration: 1500,
+    requires:
+      'The View Transitions API — Chrome 111+, Safari 18+, Firefox 132+. Older browsers navigate normally with no animation. Nothing breaks, but there is no fallback effect.',
     usage: `import { FilmBurnTransition } from '@/components/film-burn'
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <FilmBurnTransition origin="random">{children}</FilmBurnTransition>
+        <FilmBurnTransition palette="ember">{children}</FilmBurnTransition>
       </body>
     </html>
   )
@@ -69,21 +73,24 @@ export default function RootLayout({ children }) {
     props: [
       { name: 'children', type: 'ReactNode', def: '—', description: 'Your app. Wrap the contents of <body>. (Required)' },
       { name: 'origin', type: '"random" | "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center"', def: '"random"', description: 'Where the fire starts. "random" picks a fresh corner on every navigation.' },
-      { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole timeline. Above 1 is faster.' },
-      { name: 'burn', type: 'number', def: '1.05', description: 'Seconds the fire takes to consume the page.' },
-      { name: 'reveal', type: 'number', def: '0.72', description: 'Seconds the char takes to burn away again, revealing the new page.' },
-      { name: 'turbulence', type: 'number', def: '78', description: 'How far the ember edge is chewed up. 0 is a clean circle.' },
+      { name: 'palette', type: '"ember" | "magnesium" | "cold" | "toxic" | "custom"', def: '"ember"', description: 'Colour of the fire. "custom" applies no preset, leaving your own variables in charge.' },
+      { name: 'duration', type: 'number', def: '1.5', description: 'Seconds the burn takes to cross the page.' },
+      { name: 'speed', type: 'number', def: '1', description: 'Divides the duration. Above 1 is faster.' },
+      { name: 'band', type: 'number', def: '64', description: 'Thickness of the burning edge, in pixels.' },
+      { name: 'turbulence', type: 'number', def: '78', description: 'How ragged the edge is. 0 is a clean circle.' },
+      { name: 'seed', type: 'number', def: '3', description: 'Changes the shape of the raggedness without changing anything else.' },
     ],
     controls: [
       { kind: 'select', key: 'origin', label: 'Origin', options: ['random', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'], def: 'random' },
-      { kind: 'range', key: 'speed', label: 'Speed', min: 0.3, max: 2.5, step: 0.05, def: 1 },
-      { kind: 'range', key: 'burn', label: 'Burn', min: 0.4, max: 2.5, step: 0.02, def: 1.05 },
-      { kind: 'range', key: 'reveal', label: 'Reveal', min: 0.3, max: 1.8, step: 0.02, def: 0.72 },
+      { kind: 'select', key: 'palette', label: 'Palette', options: ['ember', 'magnesium', 'cold', 'toxic'], def: 'ember' },
+      { kind: 'range', key: 'duration', label: 'Duration', min: 0.5, max: 3.5, step: 0.05, def: 1.5 },
+      { kind: 'range', key: 'band', label: 'Edge thickness', min: 12, max: 180, step: 4, def: 64 },
       { kind: 'range', key: 'turbulence', label: 'Edge chew', min: 0, max: 160, step: 4, def: 78 },
+      { kind: 'range', key: 'seed', label: 'Shape', min: 1, max: 20, step: 1, def: 3 },
     ],
     notes: [
-      'Recolour the ember with --burn-core, --burn-hot, --burn-mid and --burn-edge, and the celluloid with --burn-char and --burn-soot.',
-      'No shader and no 3D — an SVG displacement map does the ragged edge for nothing.',
+      'Four palettes ship as presets. For anything else pass palette="custom" and set --burn-core, --burn-hot, --burn-mid and --burn-edge yourself.',
+      'No dependencies at all — the browser composites the two pages and an SVG displacement map does the ragged edge.',
       'Browser back and forward are not animated — history navigation snaps.',
     ],
     ready: true,

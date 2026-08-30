@@ -141,31 +141,77 @@
 
 /* ---------- film burn ---------- */
 
-:root {
+/*
+ * The fire is its own colour, not the pages'. The outgoing page is masked away
+ * inside the burn front, the incoming page is masked to show only inside a
+ * slightly smaller front, and this ramp sits behind both — so what you see in
+ * the gap between them is the fire itself.
+ *
+ * The ramp is anchored to the band rather than the origin. Anchored to the
+ * origin, the visible annulus samples the cold end of the gradient once the
+ * front is halfway out, and the fire goes dull.
+ */
+:root,
+.burn-ember {
   --burn-core: #fff4dc;
   --burn-hot: #ffb32e;
   --burn-mid: #d94a12;
   --burn-edge: #6b1806;
-  --burn-char: #0a0705;
-  --burn-soot: #1e1008;
-  --burn-lamp: #fff1d0;
 }
 
-.burn {
-  position: absolute;
-  inset: 0;
-  /* the filter is expensive to rasterise; keep it on its own layer */
-  will-change: opacity;
+.burn-magnesium {
+  --burn-core: #ffffff;
+  --burn-hot: #eaf4ff;
+  --burn-mid: #9fc6ef;
+  --burn-edge: #2b4666;
 }
 
-.burn-fill {
-  position: absolute;
-  inset: 0;
-  height: 100%;
-  width: 100%;
+.burn-cold {
+  --burn-core: #eaf6ff;
+  --burn-hot: #6fd4ff;
+  --burn-mid: #1f7ae0;
+  --burn-edge: #0a1f5c;
 }
 
+.burn-toxic {
+  --burn-core: #f4ffd9;
+  --burn-hot: #c6ff3d;
+  --burn-mid: #46b81a;
+  --burn-edge: #0d3a0a;
+}
 
-@media (prefers-reduced-motion: reduce) {
-  .burn { display: none }
+::view-transition-group(root) {
+  animation: none;
+  background:
+    radial-gradient(
+      circle at var(--burn-x, 50%) var(--burn-y, 50%),
+      var(--burn-core) calc(var(--burn-cut, 0px) - var(--burn-band, 64px)),
+      var(--burn-hot) calc(var(--burn-cut, 0px) - var(--burn-band, 64px) * 0.68),
+      var(--burn-mid) calc(var(--burn-cut, 0px) - var(--burn-band, 64px) * 0.3),
+      var(--burn-edge) var(--burn-cut, 0px),
+      var(--burn-edge) 100%
+    );
+}
+
+::view-transition-image-pair(root) {
+  isolation: auto;
+}
+
+/* The browser stacks the incoming snapshot above the outgoing one, so the
+   outgoing page has to be lifted for its mask to read as a hole rather than as
+   nothing at all. */
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  z-index: 1;
+  mask: url(#burn-mask-new);
+  -webkit-mask: url(#burn-mask-new);
+}
+
+::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  z-index: 2;
+  mask: url(#burn-mask-old);
+  -webkit-mask: url(#burn-mask-old);
 }

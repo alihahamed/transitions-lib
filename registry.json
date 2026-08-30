@@ -7,22 +7,15 @@
       "name": "film-burn",
       "type": "registry:component",
       "title": "Film Burn",
-      "description": "The page catches alight from a corner and burns away, then the char burns off to reveal the next one. GSAP, no shader.",
-      "dependencies": [
-        "gsap",
-        "next-transition-router"
-      ],
+      "description": "The page catches alight and the fire burns straight through it to the page underneath. One continuous burn, no dependencies \u2014 it rides the browser's View Transitions API.",
+      "dependencies": [],
       "files": [
         {
           "path": "registry/transitions/film-burn.tsx",
           "type": "registry:component"
         },
         {
-          "path": "registry/transitions/burn-art.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "registry/transitions/transition-core.tsx",
+          "path": "registry/transitions/view-transition-core.tsx",
           "type": "registry:component"
         },
         {
@@ -31,7 +24,7 @@
           "target": "@components/transitions.css"
         }
       ],
-      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { FilmBurnTransition } from \"@/components/film-burn\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <FilmBurnTransition>{children}</FilmBurnTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nBy default the fire starts from a random corner each navigation. Pass\norigin=\"top-left\" (or top-right, bottom-left, bottom-right, center) to fix it.\n\nColour: set --burn-core, --burn-hot, --burn-mid and --burn-edge for the ember\nramp, and --burn-char and --burn-soot for the celluloid, in\ncomponents/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the page has finished burning (~1.05s)."
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { FilmBurnTransition } from \"@/components/film-burn\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <FilmBurnTransition>{children}</FilmBurnTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s and <a>s are intercepted automatically. New tabs,\nmodified clicks, downloads, external links and same-page hashes are left alone.\n\nThe fire starts from a random corner each navigation. Pass origin=\"top-left\"\n(or top-right, bottom-left, bottom-right, center) to fix it.\n\nColour: four presets ship as classes \u2014 palette=\"ember\" (default), \"magnesium\",\n\"cold\" or \"toxic\". For anything else pass palette=\"custom\" and set\n--burn-core, --burn-hot, --burn-mid and --burn-edge yourself.\n\nNeeds the View Transitions API: Chrome 111+, Safari 18+, Firefox 132+. Older\nbrowsers navigate normally with no animation \u2014 nothing breaks, but there is no\nfallback effect."
     },
     {
       "name": "zipper",

@@ -34,6 +34,13 @@ export default async function TransitionPage({ params }: PageProps<'/transitions
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">{t.tagline}</p>
       </header>
 
+      {t.requires && (
+        <div className="mt-8 flex gap-3 rounded-xl border border-border bg-muted/30 p-4">
+          <span className="mt-px font-mono text-xs text-muted-foreground">needs</span>
+          <p className="text-[13px] leading-relaxed text-muted-foreground">{t.requires}</p>
+        </div>
+      )}
+
       <section className="mt-10">
         <PreviewFrame slug={t.slug} title={t.name} controls={t.controls} />
       </section>
