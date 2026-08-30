@@ -1,6 +1,6 @@
 import { BurnArt, type BurnOrigin } from '@/components/proto/burn-art'
 
-const STEPS = [0.08, 0.2, 0.45, 1]
+const STEPS = [0.2, 0.45, 0.7, 1]
 const ORIGINS: BurnOrigin[] = ['bottom-right', 'top-left', 'center']
 
 function Cell({ progress, origin }: { progress: number; origin: BurnOrigin }) {

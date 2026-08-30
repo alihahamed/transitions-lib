@@ -31,8 +31,18 @@ const ORIGINS: Record<BurnOrigin, [number, number]> = {
   center: [0.5, 0.5],
 }
 
-/** Far enough to swallow the frame from any corner. */
-const REACH = Math.hypot(W, H) * 1.08
+/**
+ * How far the front has to travel from a given origin to swallow the frame —
+ * the distance to the furthest corner, plus a hair.
+ *
+ * This has to be per-origin. One shared worst-case value means a centre burn
+ * only needs half of it and finishes around a third of the way through the
+ * range, then sits there doing nothing while the timeline runs on.
+ */
+const reachFrom = (cx: number, cy: number) =>
+  Math.max(
+    ...([0, W] as const).flatMap((x) => ([0, H] as const).map((y) => Math.hypot(cx - x, cy - y))),
+  ) * 1.02
 
 /** Ember band width, as a fraction of REACH. */
 const BAND = 0.055
@@ -64,8 +74,14 @@ export function BurnArt({
   const cx = ox * W
   const cy = oy * H
 
-  // fire accelerates away from the ignition point, so ease the front out
-  const cut = Math.pow(progress, 0.72)
+  const REACH = reachFrom(cx, cy)
+
+  /*
+   * The front advances linearly, which already reads as acceleration: the area
+   * consumed grows with the square of the radius. Easing it further made the
+   * burn look finished before it was.
+   */
+  const cut = progress
   /*
    * Unique per rendered instance. SVG ids are document-global, so two burns on
    * one page sharing an id means the second silently renders the first one's
