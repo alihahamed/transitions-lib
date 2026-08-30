@@ -159,18 +159,20 @@
   --burn-edge: #6b1806;
 }
 
+/* Magnesium burns brilliant white and almost colourless — the point of it is
+   that there is no hue, so this stays neutral all the way down. */
 .burn-magnesium {
   --burn-core: #ffffff;
-  --burn-hot: #eaf4ff;
-  --burn-mid: #9fc6ef;
-  --burn-edge: #2b4666;
+  --burn-hot: #f6f7f8;
+  --burn-mid: #a9aeb4;
+  --burn-edge: #34383d;
 }
 
 .burn-cold {
-  --burn-core: #eaf6ff;
-  --burn-hot: #6fd4ff;
-  --burn-mid: #1f7ae0;
-  --burn-edge: #0a1f5c;
+  --burn-core: #ddf5ff;
+  --burn-hot: #33c9ff;
+  --burn-mid: #0a5fd4;
+  --burn-edge: #04123f;
 }
 
 .burn-toxic {
