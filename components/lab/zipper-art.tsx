@@ -40,12 +40,14 @@ const toothPath = () => {
   const b = BASE / 2
   const h = HEAD / 2
   return `M 0 ${-b}
-    L ${LEN * 0.5} ${-b}
-    C ${LEN * 0.78} ${-h} ${LEN * 0.86} ${-h} ${LEN - 4} ${-h}
-    Q ${LEN} ${-h} ${LEN} ${-h + 4}
-    L ${LEN} ${h - 4}
-    Q ${LEN} ${h} ${LEN - 4} ${h}
-    C ${LEN * 0.86} ${h} ${LEN * 0.78} ${h} ${LEN * 0.5} ${b}
+    L ${LEN * 0.44} ${-b}
+    L ${LEN * 0.62} ${-h}
+    L ${LEN - 2.5} ${-h}
+    Q ${LEN} ${-h} ${LEN} ${-h + 2.5}
+    L ${LEN} ${h - 2.5}
+    Q ${LEN} ${h} ${LEN - 2.5} ${h}
+    L ${LEN * 0.62} ${h}
+    L ${LEN * 0.44} ${b}
     L 0 ${b} Z`
 }
 
@@ -58,7 +60,7 @@ function Tooth({ x, y, flip }: { x: number; y: number; flip?: boolean }) {
       {/* shading along the length, so base and tip are not as bright as the belly */}
       <path d={d} fill="url(#form)" />
       {/* primary specular, faded at both ends so it has no hard terminator */}
-      <rect x={LEN * 0.22} y={-h + 1.6} width={LEN * 0.66} height={1.9} rx={0.95} fill="url(#spec)" />
+      <rect x={LEN * 0.2} y={-h + 1.5} width={LEN * 0.7} height={1.1} rx={0.55} fill="url(#spec)" />
       {/* reflected light along the bottom edge — the main reason metal reads as
           metal rather than plastic */}
       <rect x={LEN * 0.3} y={h - 2.4} width={LEN * 0.5} height={1.1} rx={0.55} fill="url(#bounce)" />
@@ -115,18 +117,20 @@ export function ZipperArt({
             metal-lo instead of near-black. The previous ramp ended almost black
             and began almost white, so every tooth boundary read as an outline. */}
         <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--zip-metal-lo, #4a453e)" />
-          <stop offset="7%" stopColor="var(--zip-metal, #d7d2c8)" />
-          <stop offset="24%" stopColor="var(--zip-metal, #d7d2c8)" />
-          <stop offset="49%" stopColor="var(--zip-metal-mid, #8f887c)" />
-          <stop offset="74%" stopColor="var(--zip-metal-lo, #4a453e)" />
-          <stop offset="90%" stopColor="var(--zip-metal-mid, #8f887c)" />
+          <stop offset="0%" stopColor="var(--zip-metal-edge, #211f1c)" />
+          <stop offset="5%" stopColor="var(--zip-metal-lo, #4a453e)" />
+          <stop offset="13%" stopColor="var(--zip-metal, #d7d2c8)" />
+          <stop offset="34%" stopColor="var(--zip-metal, #d7d2c8)" />
+          <stop offset="56%" stopColor="var(--zip-metal-mid, #8f887c)" />
+          <stop offset="78%" stopColor="var(--zip-metal-edge, #211f1c)" />
+          <stop offset="92%" stopColor="var(--zip-metal-mid, #8f887c)" />
           <stop offset="100%" stopColor="var(--zip-metal-lo, #4a453e)" />
         </linearGradient>
         <linearGradient id="spec" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="rgba(255,255,255,0)" />
-          <stop offset="30%" stopColor="rgba(255,255,255,.72)" />
-          <stop offset="62%" stopColor="rgba(255,255,255,.34)" />
+          <stop offset="18%" stopColor="rgba(255,255,255,.95)" />
+          <stop offset="52%" stopColor="rgba(255,255,255,.6)" />
+          <stop offset="88%" stopColor="rgba(255,255,255,.1)" />
           <stop offset="100%" stopColor="rgba(255,255,255,0)" />
         </linearGradient>
         <linearGradient id="bounce" x1="0" y1="0" x2="1" y2="0">
@@ -163,7 +167,7 @@ export function ZipperArt({
           <stop offset="100%" stopColor="rgba(0,0,0,0)" />
         </radialGradient>
         <filter id="cast" x="-25%" y="-25%" width="160%" height="160%">
-          <feDropShadow dx="0.4" dy="1.5" stdDeviation="1.5" floodColor="#000" floodOpacity="0.38" />
+          <feDropShadow dx="0.3" dy="1.1" stdDeviation="0.85" floodColor="#000" floodOpacity="0.62" />
         </filter>
       </defs>
 
