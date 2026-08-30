@@ -2,7 +2,7 @@
  * Static zipper artwork — prototype.
  *
  * No geometry, only shading: a specular band along each tooth's top edge, a
- * contact shadow underneath, and a slider with a lit top face.
+ * contact shadow beneath, and a slider with a lit top face.
  *
  * progress: 0 = fully open, 1 = fully closed.
  */
@@ -16,7 +16,24 @@ const BASE = 11 // tooth height where it meets the tape
 const HEAD = 17 // tooth height at the tip — the flare is what locks it
 const LEN = 34 // how far a tooth reaches from its tape edge
 const OVERLAP = 9 // how far past centre a meshed tooth crosses
-const GAP = 40 // how far the tapes part once unzipped
+const GAP = 34 // how far each tape sits from centre once fully parted
+const TAPER = 120 // distance below the slider over which the rows fan apart
+
+const SLIDER_W = 52
+const SLIDER_H = 72
+
+/**
+ * How far apart the rows are at a given y. Zero above the slider, then eased
+ * out to full over TAPER — the rows funnel out of the slider's mouth rather
+ * than jumping to their final width.
+ */
+const parting = (y: number, sliderY: number) => {
+  if (y <= sliderY) return 0
+  const t = Math.min(1, (y - sliderY) / TAPER)
+  return 1 - (1 - t) * (1 - t) // easeOutQuad
+}
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 
 /** Flares toward the tip so meshed teeth visibly lock between their neighbours. */
 const toothPath = () => {
@@ -53,28 +70,34 @@ export function ZipperArt({
   view?: string
 }) {
   const sliderY = progress * H // 1 = closed, slider has run all the way down
-  const openLeft = CX - GAP
-  const openRight = CX + GAP
 
-  const leftTape = `M 0 0 L ${CX} 0 L ${CX} ${sliderY} L ${openLeft} ${sliderY} L ${openLeft} ${H} L 0 ${H} Z`
-  const rightTape = `M ${W} 0 L ${CX} 0 L ${CX} ${sliderY} L ${openRight} ${sliderY} L ${openRight} ${H} L ${W} ${H} Z`
+  // Tape inner edges follow the same taper the teeth do, so fabric and metal
+  // fan out together instead of the tape stepping open in one jump.
+  const edge: string[] = []
+  for (let y = 0; y <= H; y += 8) {
+    edge.push(`${lerp(CX, CX - GAP, parting(y, sliderY))} ${y}`)
+  }
+  const leftTape = `M 0 0 L ${edge.join(' L ')} L 0 ${H} Z`
+  const rightEdge = edge.map((p) => {
+    const [x, y] = p.split(' ').map(Number)
+    return `${2 * CX - x} ${y}`
+  })
+  const rightTape = `M ${W} 0 L ${rightEdge.join(' L ')} L ${W} ${H} Z`
 
   const teeth = []
   for (let i = 0; i < Math.ceil(H / PITCH) + 1; i++) {
     const ly = i * PITCH
     const ry = i * PITCH + PITCH / 2 // half-pitch offset so the rows interleave
+    const lt = parting(ly, sliderY)
+    const rt = parting(ry, sliderY)
     teeth.push(
-      <Tooth key={`l${i}`} y={ly} x={ly < sliderY ? CX + OVERLAP - LEN : openLeft - LEN} />,
-      <Tooth key={`r${i}`} y={ry} flip x={ry < sliderY ? CX - OVERLAP + LEN : openRight + LEN} />,
+      <Tooth key={`l${i}`} y={ly} x={lerp(CX + OVERLAP, CX - GAP, lt) - LEN} />,
+      <Tooth key={`r${i}`} y={ry} flip x={lerp(CX - OVERLAP, CX + GAP, rt) + LEN} />,
     )
   }
 
   return (
-    <svg
-      viewBox={view ?? `0 0 ${W} ${H}`}
-      className="h-full w-full"
-      preserveAspectRatio="xMidYMid slice"
-    >
+    <svg viewBox={view ?? `0 0 ${W} ${H}`} className="h-full w-full" preserveAspectRatio="xMidYMid slice">
       <defs>
         <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--zip-metal-hi, #ffffff)" />
@@ -98,31 +121,46 @@ export function ZipperArt({
       <path d={leftTape} fill="url(#tape)" />
       <path d={rightTape} fill="url(#tape)" />
       {teeth}
-      {progress > 0 && progress < 1 && <Slider y={sliderY} />}
-      {progress === 1 && <Slider y={H - 40} />}
-      {progress === 0 && <Slider y={40} />}
+      <Slider y={progress === 1 ? H - 34 : progress === 0 ? 34 : sliderY} />
     </svg>
   )
 }
 
+/**
+ * Narrow end up — the single meshed chain leaves there. Wide mouth down, where
+ * the two rows feed in. Getting this backwards is what made the parted teeth
+ * look detached from the slider.
+ */
 function Slider({ y }: { y: number }) {
-  const w = 50
-  const h = 70
+  const w = SLIDER_W
+  const h = SLIDER_H
+  const neck = 17
   return (
     <g transform={`translate(${CX} ${y})`}>
-      <ellipse cx={0} cy={h / 2 - 6} rx={w / 2 + 7} ry={11} fill="rgba(0,0,0,.55)" />
+      <ellipse cx={0} cy={h / 2 - 8} rx={w / 2 + 6} ry={10} fill="rgba(0,0,0,.55)" />
       <path
-        d={`M ${-w / 2} ${-h / 2} L ${w / 2} ${-h / 2} L ${w / 2 - 9} ${h / 2} L ${-w / 2 + 9} ${h / 2} Z`}
+        d={`M ${-neck / 2} ${-h / 2}
+            L ${neck / 2} ${-h / 2}
+            L ${neck / 2 + 3} ${-h / 2 + 16}
+            L ${w / 2} ${h / 2 - 10}
+            Q ${w / 2} ${h / 2} ${w / 2 - 10} ${h / 2}
+            L ${-w / 2 + 10} ${h / 2}
+            Q ${-w / 2} ${h / 2} ${-w / 2} ${h / 2 - 10}
+            L ${-neck / 2 - 3} ${-h / 2 + 16} Z`}
         fill="url(#metal)"
+        stroke="rgba(0,0,0,.7)"
+        strokeWidth={0.8}
       />
+      {/* lit top face */}
       <path
-        d={`M ${-w / 2 + 3} ${-h / 2 + 3} L ${w / 2 - 3} ${-h / 2 + 3} L ${w / 2 - 6} ${-h / 2 + 13} L ${-w / 2 + 6} ${-h / 2 + 13} Z`}
-        fill="rgba(255,255,255,.55)"
+        d={`M ${-neck / 2 + 1.5} ${-h / 2 + 2} L ${neck / 2 - 1.5} ${-h / 2 + 2} L ${neck / 2 + 1} ${-h / 2 + 10} L ${-neck / 2 - 1} ${-h / 2 + 10} Z`}
+        fill="rgba(255,255,255,.6)"
       />
-      <rect x={-4} y={h / 2 - 10} width={8} height={16} rx={3} fill="url(#metal)" />
+      {/* pull tab, hanging off the wide end */}
+      <rect x={-4} y={h / 2 - 12} width={8} height={16} rx={3} fill="url(#metal)" />
       <rect
         x={-13}
-        y={h / 2 + 4}
+        y={h / 2 + 2}
         width={26}
         height={38}
         rx={7}
