@@ -12,17 +12,17 @@ const H = 640
 const CX = W / 2
 
 const PITCH = 20 // vertical distance between teeth on one side
-const BASE = 7 // neck height where the tooth meets the tape
+const BASE = 9 // tooth height where it meets the tape
 /**
- * Head height. It exceeds PITCH/2, so consecutive teeth overlap by
- * HEAD - PITCH/2 and braid into each other — that overlap is the interlock.
- * Push it much further and each tooth starts burying the lower third of the
- * one before it, which is where the dark core and the reflected bounce live.
+ * Kept under half the pitch on purpose. Meshed teeth are drawn over one
+ * another, and anything taller than PITCH/2 buries its own lower third —
+ * exactly where the dark core and the reflected bounce live. That is why the
+ * joined chain used to look flat next to the separated rows: same shader, less
+ * of it visible.
  */
-const HEAD = 14
+const HEAD = 13
 const LEN = 34 // how far a tooth reaches from its tape edge
-const NECK = 19 // how much of that length is the narrow neck
-const OVERLAP = 8 // how far past centre a meshed head crosses — heads only
+const OVERLAP = 14 // how far past centre a meshed tooth crosses
 const GAP = 34 // how far each tape sits from centre once fully parted
 const TAPER = 120 // distance below the slider over which the rows fan apart
 
@@ -46,18 +46,15 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const toothPath = () => {
   const b = BASE / 2
   const h = HEAD / 2
-  const r = 2.2
   return `M 0 ${-b}
-    L ${NECK} ${-b}
-    L ${NECK + 3.5} ${-h + r}
-    Q ${NECK + 4.5} ${-h} ${NECK + 7} ${-h}
-    L ${LEN - r} ${-h}
-    Q ${LEN} ${-h} ${LEN} ${-h + r}
-    L ${LEN} ${h - r}
-    Q ${LEN} ${h} ${LEN - r} ${h}
-    L ${NECK + 7} ${h}
-    Q ${NECK + 4.5} ${h} ${NECK + 3.5} ${h - r}
-    L ${NECK} ${b}
+    L ${LEN * 0.44} ${-b}
+    L ${LEN * 0.62} ${-h}
+    L ${LEN - 2.5} ${-h}
+    Q ${LEN} ${-h} ${LEN} ${-h + 2.5}
+    L ${LEN} ${h - 2.5}
+    Q ${LEN} ${h} ${LEN - 2.5} ${h}
+    L ${LEN * 0.62} ${h}
+    L ${LEN * 0.44} ${b}
     L 0 ${b} Z`
 }
 
@@ -70,15 +67,12 @@ function Tooth({ x, y, flip }: { x: number; y: number; flip?: boolean }) {
       {/* shading along the length, so base and tip are not as bright as the belly */}
       <path d={d} fill="url(#form)" />
       {/* primary specular, faded at both ends so it has no hard terminator */}
-      <rect x={NECK * 0.35} y={-h + 1.4} width={LEN - NECK * 0.35 - 2} height={1.1} rx={0.55} fill="url(#spec)" />
+      <rect x={LEN * 0.2} y={-h + 1.5} width={LEN * 0.7} height={1.1} rx={0.55} fill="url(#spec)" />
       {/* reflected light along the bottom edge — the main reason metal reads as
           metal rather than plastic */}
-      <rect x={NECK + 4} y={h - 2.2} width={LEN - NECK - 6} height={1} rx={0.5} fill="url(#bounce)" />
-      {/* highlight wrapping the head */}
-      <rect x={NECK + 6} y={-h + 3} width={LEN - NECK - 9} height={HEAD - 6} rx={2} fill="url(#tip)" />
-      {/* the socket the opposing tooth seats into */}
-      <ellipse cx={NECK + 11} cy={0} rx={3.6} ry={2.4} fill="rgba(0,0,0,.42)" />
-      <ellipse cx={NECK + 11} cy={-0.7} rx={3} ry={1.7} fill="rgba(255,255,255,.1)" />
+      <rect x={LEN * 0.3} y={h - 2.4} width={LEN * 0.5} height={1.1} rx={0.55} fill="url(#bounce)" />
+      {/* highlight wrapping the flared head */}
+      <rect x={LEN * 0.62} y={-h + 3.4} width={LEN * 0.36} height={HEAD - 7} rx={2.4} fill="url(#tip)" />
     </g>
   )
 }
