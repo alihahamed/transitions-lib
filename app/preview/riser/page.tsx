@@ -25,7 +25,7 @@ export default function A() {
           Watch the outgoing page shrink back rather than simply vanish. That depth is
           the whole trick.
         </p>
-        <Link href="/preview/riser/b" style={{ color: '#f4f2ee', fontSize: 15 }}>
+        <Link href="/preview/riser/b" style={{ color: '#f4f2ee', fontSize: 15, width: 'fit-content' }}>
           next →
         </Link>
       </div>

@@ -27,7 +27,7 @@ export default function B() {
             <span style={{ opacity: 0.5 }}>prop</span>
           </div>
         ))}
-        <Link href="/preview/riser" style={{ color: '#17150f', fontSize: 15, marginTop: 12 }}>
+        <Link href="/preview/riser" style={{ color: '#17150f', fontSize: 15, marginTop: 12, width: 'fit-content', justifySelf: 'start' }}>
           ← back
         </Link>
       </div>
