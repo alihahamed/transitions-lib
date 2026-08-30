@@ -22,13 +22,25 @@ export type FilmBurnOptions = {
 const DEFAULTS: FilmBurnOptions = {
   origin: 'random',
   speed: 1,
-  burn: 0.62,
-  reveal: 0.5,
+  burn: 1.05,
+  reveal: 0.72,
   turbulence: 78,
 }
 
 const CORNERS: BurnOrigin[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
-const pickCorner = () => CORNERS[Math.floor(Math.random() * CORNERS.length)]
+
+/**
+ * Where the current navigation's fire started. The reveal has to continue from
+ * the same place — picking again meant the char cleared from a different corner
+ * than it arrived from, which reads as a black screen and then a second,
+ * unrelated fire rather than one continuous burn.
+ */
+let lastOrigin: BurnOrigin = 'bottom-right'
+
+const resolveOrigin = (choice: FilmBurnOptions['origin']) => {
+  lastOrigin = choice === 'random' ? CORNERS[Math.floor(Math.random() * CORNERS.length)] : choice
+  return lastOrigin
+}
 
 type State = {
   /** How far the front has travelled. */
@@ -88,27 +100,26 @@ export const FilmBurnTransition = createTransition<FilmBurnOptions>({
    * has resolved any of the detail.
    */
   leave: ({ options, done }) => {
-    const origin = options.origin === 'random' ? pickCorner() : options.origin
-    const v: State = { burn: 0, mode: 'cover', origin, live: true }
+    const v: State = { burn: 0, mode: 'cover', origin: resolveOrigin(options.origin), live: true }
     const tl = gsap.timeline({ onUpdate: () => push?.({ ...v }), onComplete: done })
 
-    tl.to(v, { burn: 0.16, duration: options.burn * 0.3, ease: 'power2.out' })
-      .to({}, { duration: options.burn * 0.12 })
-      .to(v, { burn: 1, duration: options.burn * 0.72, ease: 'power2.in' })
+    // One continuous run. An earlier version held for a beat just after
+    // ignition, which was meant to make the ember readable and instead read as
+    // the fire stalling.
+    tl.to(v, { burn: 1, duration: options.burn, ease: 'power1.in' })
 
     tl.timeScale(options.speed)
     return () => tl.kill()
   },
 
   /**
-   * The same fire keeps going and eats the char away, rather than a flash or a
-   * fade. Quicker than the burn on purpose: the page catching alight is the
-   * part worth watching, and a second long beat is where a transition starts to
-   * wear out its welcome.
+   * The same fire keeps going and eats the char away, from the same corner it
+   * started in. Quicker than the burn on purpose: the page catching alight is
+   * the part worth watching, and a second long beat is where a transition
+   * starts to wear out its welcome.
    */
   enter: ({ options, done }) => {
-    const origin = options.origin === 'random' ? pickCorner() : options.origin
-    const v: State = { burn: 0, mode: 'clear', origin, live: true }
+    const v: State = { burn: 0, mode: 'clear', origin: lastOrigin, live: true }
     const tl = gsap.timeline({
       onUpdate: () => push?.({ ...v }),
       onComplete: () => {
