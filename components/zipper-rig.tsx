@@ -87,12 +87,13 @@ function Panel({
 export function ZipperRig({
   zip,
   swing,
-  tuning = DEFAULT_TUNING,
+  tuning,
 }: {
   zip: number
   swing: number
-  tuning?: RigTuning
+  tuning?: Partial<RigTuning>
 }) {
+  const t = { ...DEFAULT_TUNING, ...tuning }
   const { W, H } = ZIPPER_DIMS
   const sliderY = SLIDER_INSET + zip * (H - SLIDER_INSET * 2)
 
@@ -101,8 +102,8 @@ export function ZipperRig({
       className="zip-rig"
       style={{ perspective: '1400px', perspectiveOrigin: '50% 45%' }}
     >
-      <Panel side="left" zip={zip} swing={swing} t={tuning} />
-      <Panel side="right" zip={zip} swing={swing} t={tuning} />
+      <Panel side="left" zip={zip} swing={swing} t={t} />
+      <Panel side="right" zip={zip} swing={swing} t={t} />
 
       {/* The slider belongs to neither panel once they hinge apart, so it rides
           in its own layer, and rides up out through the top as the panels

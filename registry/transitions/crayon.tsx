@@ -26,8 +26,20 @@ const paths = (overlay: HTMLDivElement) =>
  *
  * Recolour with --crayon-1/2/3 in transitions.css.
  */
-export const CrayonTransition = createTransition({
-  timeout: 4000,
+export type CrayonOptions = {
+  /** Multiplies the whole timeline. Above 1 is faster. */
+  speed: number
+  /** Stroke width each crayon fattens to. Bigger covers the screen sooner. */
+  thickness: number
+  /** Seconds between one stroke starting and the next, while closing. */
+  stagger: number
+}
+
+const DEFAULTS: CrayonOptions = { speed: 1, thickness: 700, stagger: 0.3 }
+
+export const CrayonTransition = createTransition<CrayonOptions>({
+  timeout: 6000,
+  defaults: DEFAULTS,
 
   overlay: (
     <div className="crayon">
@@ -54,7 +66,7 @@ export const CrayonTransition = createTransition({
     })
   },
 
-  leave: ({ overlay, done }) => {
+  leave: ({ overlay, options, done }) => {
     const tl = gsap.timeline({ onComplete: done })
 
     paths(overlay).forEach((path, i) => {
@@ -62,18 +74,19 @@ export const CrayonTransition = createTransition({
         path,
         {
           strokeDashoffset: 0,
-          attr: { 'stroke-width': 700 },
+          attr: { 'stroke-width': options.thickness },
           duration: 1,
           ease: 'power1.inOut',
         },
-        i * 0.3,
+        i * options.stagger,
       )
     })
 
+    tl.timeScale(options.speed)
     return () => tl.kill()
   },
 
-  enter: ({ overlay, done }) => {
+  enter: ({ overlay, options, done }) => {
     const tl = gsap.timeline({ onComplete: done })
 
     paths(overlay).forEach((path, i) => {
@@ -92,6 +105,7 @@ export const CrayonTransition = createTransition({
       )
     })
 
+    tl.timeScale(options.speed)
     return () => tl.kill()
   },
 })

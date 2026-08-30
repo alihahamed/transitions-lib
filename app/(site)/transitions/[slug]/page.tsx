@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { transitions, bySlug, installCommand } from '@/lib/transitions'
 import { CodeBlock } from '@/components/site/code-block'
 import { PreviewFrame } from '@/components/site/preview-frame'
+import { ApiReference } from '@/components/site/api-reference'
 
 export function generateStaticParams() {
   return transitions.map(({ slug }) => ({ slug }))
@@ -34,7 +35,7 @@ export default async function TransitionPage({ params }: PageProps<'/transitions
       </header>
 
       <section className="mt-10">
-        <PreviewFrame slug={t.slug} title={t.name} swatches={t.swatches} />
+        <PreviewFrame slug={t.slug} title={t.name} controls={t.controls} />
       </section>
 
       <section className="mt-12">
@@ -53,6 +54,13 @@ export default async function TransitionPage({ params }: PageProps<'/transitions
         <h2 className="text-sm font-medium">Usage</h2>
         <div className="mt-3">
           <CodeBlock code={t.usage} label="app/layout.tsx" />
+        </div>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="text-sm font-medium">API Reference</h2>
+        <div className="mt-3">
+          <ApiReference props={t.props} />
         </div>
       </section>
 

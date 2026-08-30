@@ -1,25 +1,24 @@
 'use client'
 
-import { useState } from 'react'
-
-export type Swatch = { name: string; from: string; to: string }
+import type { Control } from '@/lib/transitions'
+import { Customize, useCustomize } from './customize'
 
 /**
  * The preview is a real two-route app in a frame, so the navigation is genuine
- * and cannot collide with the docs site's own routing. Changing palette reloads
- * the frame with a query param rather than reaching into it.
+ * and cannot collide with the docs site's own routing. Customising reloads the
+ * frame with the changed values as a query, rather than reaching into it.
  */
 export function PreviewFrame({
   slug,
   title,
-  swatches,
+  controls,
 }: {
   slug: string
   title: string
-  swatches?: Swatch[]
+  controls: Control[]
 }) {
-  const [palette, setPalette] = useState('nickel')
-  const src = palette === 'nickel' ? `/preview/${slug}` : `/preview/${slug}?palette=${palette}`
+  const { values, setValues, reset, query } = useCustomize(controls)
+  const src = query ? `/preview/${slug}?${query}` : `/preview/${slug}`
 
   return (
     <>
@@ -43,26 +42,20 @@ export function PreviewFrame({
         />
       </div>
 
-      {swatches && (
-        <div className="mt-4 flex flex-wrap items-center gap-2.5">
-          {swatches.map((s) => (
-            <button
-              key={s.name}
-              onClick={() => setPalette(s.name)}
-              className={`flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-xs transition-colors ${
-                palette === s.name
-                  ? 'border-foreground/50 text-foreground'
-                  : 'border-border text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <span
-                className="size-3.5 rounded-full border border-black/40"
-                style={{ background: `linear-gradient(160deg, ${s.from}, ${s.to})` }}
-              />
-              {s.name}
-            </button>
-          ))}
-        </div>
+      <div className="mt-4">
+        <Customize controls={controls} values={values} onChange={setValues} onReset={reset} />
+      </div>
+
+      {query && (
+        <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
+          {'<'}
+          {title.replace(/\s+/g, '')}Transition{' '}
+          {Object.entries(values)
+            .filter(([k]) => controls.find((c) => c.key === k)?.def !== values[k])
+            .map(([k, v]) => (typeof v === 'string' ? `${k}="${v}"` : `${k}={${v}}`))
+            .join(' ')}
+          {'>'}
+        </p>
       )}
     </>
   )
