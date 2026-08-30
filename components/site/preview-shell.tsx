@@ -14,7 +14,7 @@ export function PreviewShell({
   children: ReactNode
 }) {
   return (
-    <Link href={href} className="flex min-h-dvh flex-col justify-between p-10">
+    <Link href={href} className="flex h-dvh flex-col justify-between overflow-hidden p-10">
       <span className="font-mono text-xs uppercase tracking-[0.2em]" style={{ color: accent }}>
         page {step}
       </span>

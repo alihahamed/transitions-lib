@@ -2,17 +2,20 @@
 
 /* ---------- overlay shell (used by all overlay-type transitions) ---------- */
 
+/*
+ * 100vw rather than inset:0. A fixed element sized to inset:0 fills the layout
+ * viewport, which excludes the scrollbar — so on any page tall enough to
+ * scroll, the overlay stops short of the right edge and its centre sits half a
+ * scrollbar to the left. 100vw and 100dvh include that strip.
+ */
 .transition-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
   z-index: 100;
   pointer-events: none;
-}
-
-/* A scrollbar appearing or vanishing under a full-screen fixed overlay shifts
-   the page out from under it, which reads as the transition being off-centre. */
-html:has(.transition-overlay) {
-  scrollbar-gutter: stable;
 }
 
 .transition-overlay svg {

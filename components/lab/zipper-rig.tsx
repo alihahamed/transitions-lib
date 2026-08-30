@@ -119,13 +119,17 @@ export function ZipperRig({
       <Panel side="right" zip={zip} swing={swing} t={tuning} />
 
       {/* The slider belongs to neither panel once they hinge apart, so it rides
-          in its own layer. Reuses the #metal gradient the panels already
+          in its own layer, and rides up out through the top as the panels
+          leave rather than dissolving in place — a slider that fades reads as a
+          bug, not as leaving. Reuses the #metal gradient the panels already
           registered in the document. */}
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid slice"
         className="pointer-events-none absolute inset-0 h-full w-full"
-        style={{ opacity: 1 - swing }}
+        /* Rides up and out through the top rather than dissolving in place —
+           a slider that fades reads as a bug, not as leaving. */
+        style={{ transform: `translateY(${-swing * 42}%)` }}
       >
         <Slider y={sliderY} />
       </svg>
