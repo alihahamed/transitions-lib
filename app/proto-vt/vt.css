@@ -1,0 +1,20 @@
+/* Stop the browser's default crossfade — we are driving this ourselves. */
+::view-transition-group(root) {
+  animation: none;
+}
+
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/*
+ * The whole spike. If the mask applies here, the burn eats a hole through the
+ * outgoing page and the incoming one shows through it.
+ */
+::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  mask: url(#vt-burn);
+  -webkit-mask: url(#vt-burn);
+}
