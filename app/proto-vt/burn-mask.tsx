@@ -9,9 +9,12 @@ import gsap from 'gsap'
  * If it holds up, the burn punches a hole straight through the outgoing page
  * and the real incoming page shows through it — one fire, no char, no black.
  */
-const W = 1600
-const H = 900
-const OVER = 260
+/*
+ * A CSS mask on a viewport-sized element works in CSS pixels, so the gradient
+ * geometry has to be measured from the real viewport rather than the artwork's
+ * own 1600x900 coordinate space.
+ */
+const OVER = 400
 
 const ORIGINS = [
   [0.1, 0.1],
@@ -41,9 +44,10 @@ export function BurnMaskDefs() {
           <stop offset="100%" stopColor="#fff" />
         </radialGradient>
 
-        <mask id="vt-burn" maskUnits="userSpaceOnUse" x={0} y={0} width={W} height={H}>
+        {/* generous region — anything outside a mask counts as hidden */}
+        <mask id="vt-burn" maskUnits="userSpaceOnUse" x={-OVER} y={-OVER} width={8000} height={8000}>
           <g filter="url(#vt-chew)">
-            <rect x={-OVER} y={-OVER} width={W + OVER * 2} height={H + OVER * 2} fill="url(#vt-burn-grad)" />
+            <rect id="vt-burn-rect" x={-OVER} y={-OVER} width={8000} height={8000} fill="url(#vt-burn-grad)" />
           </g>
         </mask>
       </defs>
@@ -61,11 +65,13 @@ export function BurnMaskNav({ href, children }: { href: string; children: React.
       return
     }
 
+    const vw = document.documentElement.clientWidth
+    const vh = document.documentElement.clientHeight
     const [ox, oy] = ORIGINS[Math.floor(Math.random() * ORIGINS.length)]
-    const cx = ox * W
-    const cy = oy * H
+    const cx = ox * vw
+    const cy = oy * vh
     const reach = Math.max(
-      ...[0, W].flatMap((x) => [0, H].map((y) => Math.hypot(cx - x, cy - y))),
+      ...[0, vw].flatMap((x) => [0, vh].map((y) => Math.hypot(cx - x, cy - y))),
     ) * 1.02
 
     const grad = document.getElementById('vt-burn-grad')
@@ -88,10 +94,10 @@ export function BurnMaskNav({ href, children }: { href: string; children: React.
     // holds the snapshot on screen for the length of the burn
     document.documentElement.animate(
       { opacity: [1, 1] },
-      { duration: 1400, pseudoElement: '::view-transition-old(root)' },
+      { duration: 1500, pseudoElement: '::view-transition-old(root)' },
     )
 
-    gsap.to(v, { cut: 1, duration: 1.4, ease: 'power1.in', onUpdate: paint })
+    gsap.to(v, { cut: 1, duration: 1.5, ease: 'power1.in', onUpdate: paint })
   }
 
   return (

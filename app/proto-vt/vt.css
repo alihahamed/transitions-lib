@@ -1,4 +1,13 @@
-/* Stop the browser's default crossfade — we are driving this ourselves. */
+/*
+ * The browser stacks the new snapshot above the old one, so masking the old
+ * page achieves nothing on its own — the new page is painted over it either
+ * way. Lifting the old page above the new one is what makes the mask a hole
+ * you can see through.
+ */
+::view-transition-image-pair(root) {
+  isolation: auto;
+}
+
 ::view-transition-group(root) {
   animation: none;
 }
@@ -6,15 +15,24 @@
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
+  z-index: 1;
 }
 
 /*
- * The whole spike. If the mask applies here, the burn eats a hole through the
- * outgoing page and the incoming one shows through it.
+ * A mask only carries alpha, so it cuts the hole but cannot colour its edge.
+ * Stacked drop-shadows read the alpha channel and bleed inward across the
+ * ragged boundary, which gets the ember ramp for nothing — white hot at the
+ * cut, cooling out through amber to deep red.
  */
 ::view-transition-old(root) {
   animation: none;
   mix-blend-mode: normal;
+  z-index: 2;
   mask: url(#vt-burn);
   -webkit-mask: url(#vt-burn);
+  filter:
+    drop-shadow(0 0 1px var(--burn-core, #fff4dc))
+    drop-shadow(0 0 5px var(--burn-hot, #ffb32e))
+    drop-shadow(0 0 16px var(--burn-mid, #d94a12))
+    drop-shadow(0 0 38px var(--burn-edge, #6b1806));
 }
