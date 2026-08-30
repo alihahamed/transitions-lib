@@ -3,17 +3,13 @@
 /* ---------- overlay shell (used by all overlay-type transitions) ---------- */
 
 /*
- * 100vw rather than inset:0. A fixed element sized to inset:0 fills the layout
- * viewport, which excludes the scrollbar — so on any page tall enough to
- * scroll, the overlay stops short of the right edge and its centre sits half a
- * scrollbar to the left. 100vw and 100dvh include that strip.
+ * inset:0 sizes to the layout viewport, which excludes the scrollbar — so the
+ * overlay is centred on the area the reader actually sees. 100vw would include
+ * the scrollbar and push the centre to the right of the content instead.
  */
 .transition-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100dvh;
+  inset: 0;
   z-index: 100;
   pointer-events: none;
 }
