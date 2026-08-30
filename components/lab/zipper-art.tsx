@@ -11,9 +11,16 @@ const W = 420
 const H = 640
 const CX = W / 2
 
-const PITCH = 21 // vertical distance between teeth on one side
-const BASE = 11 // tooth height where it meets the tape
-const HEAD = 17 // tooth height at the tip — the flare is what locks it
+const PITCH = 20 // vertical distance between teeth on one side
+const BASE = 9 // tooth height where it meets the tape
+/**
+ * Kept under half the pitch on purpose. Meshed teeth are drawn over one
+ * another, and anything taller than PITCH/2 buries its own lower third —
+ * exactly where the dark core and the reflected bounce live. That is why the
+ * joined chain used to look flat next to the separated rows: same shader, less
+ * of it visible.
+ */
+const HEAD = 13
 const LEN = 34 // how far a tooth reaches from its tape edge
 const OVERLAP = 14 // how far past centre a meshed tooth crosses
 const GAP = 34 // how far each tape sits from centre once fully parted
