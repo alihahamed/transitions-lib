@@ -11,16 +11,16 @@ const W = 420
 const H = 640
 const CX = W / 2
 
-const PITCH = 20 // vertical distance between teeth on one side
+export const DEFAULT_PITCH = 20 // vertical distance between teeth on one side
 const BASE = 9 // tooth height where it meets the tape
 /**
- * Kept under half the pitch on purpose. Meshed teeth are drawn over one
- * another, and anything taller than PITCH/2 buries its own lower third —
- * exactly where the dark core and the reflected bounce live. That is why the
- * joined chain used to look flat next to the separated rows: same shader, less
- * of it visible.
+ * Tooth height. Meshed teeth are drawn over one another, so consecutive teeth
+ * overlap by head - pitch/2 and that overlap is the interlock. Too little and
+ * the chain reads as separate blocks; too much and each tooth buries the lower
+ * third of the one before it, which is where the dark core and the reflected
+ * bounce live — the joined chain then looks flat next to the separated rows.
  */
-const HEAD = 13
+export const DEFAULT_HEAD = 13
 const LEN = 34 // how far a tooth reaches from its tape edge
 const OVERLAP = 14 // how far past centre a meshed tooth crosses
 const GAP = 34 // how far each tape sits from centre once fully parted
@@ -43,7 +43,7 @@ const parting = (y: number, sliderY: number) => {
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 
 /** Flares toward the tip so meshed teeth visibly lock between their neighbours. */
-const toothPath = () => {
+const toothPath = (HEAD: number) => {
   const b = BASE / 2
   const h = HEAD / 2
   return `M 0 ${-b}
@@ -58,8 +58,8 @@ const toothPath = () => {
     L 0 ${b} Z`
 }
 
-function Tooth({ x, y, flip }: { x: number; y: number; flip?: boolean }) {
-  const d = toothPath()
+function Tooth({ x, y, flip, head: HEAD }: { x: number; y: number; flip?: boolean; head: number }) {
+  const d = toothPath(HEAD)
   const h = HEAD / 2
   return (
     <g transform={`translate(${x} ${y}) ${flip ? 'scale(-1 1)' : ''}`}>
@@ -81,8 +81,14 @@ export function ZipperArt({
   progress = 1,
   view,
   showSlider = true,
+  pitch: PITCH = DEFAULT_PITCH,
+  head = DEFAULT_HEAD,
 }: {
   progress?: number
+  /** Vertical spacing between teeth on one side — the chain's density. */
+  pitch?: number
+  /** Tooth height. Overlap with the tooth before it is head - pitch/2. */
+  head?: number
   /** Crop to a region, for inspecting the teeth up close. */
   view?: string
   /** Off when the rig draws the slider in its own layer, above the hinged panels. */
@@ -110,8 +116,14 @@ export function ZipperArt({
     const ly = i * PITCH
     const ry = i * PITCH + PITCH / 2 // half-pitch offset so the rows interleave
     teeth.push(
-      <Tooth key={`l${i}`} y={ly} x={lerp(CX + OVERLAP, CX - GAP, parting(ly, sliderY)) - LEN} />,
-      <Tooth key={`r${i}`} y={ry} flip x={lerp(CX - OVERLAP, CX + GAP, parting(ry, sliderY)) + LEN} />,
+      <Tooth key={`l${i}`} head={head} y={ly} x={lerp(CX + OVERLAP, CX - GAP, parting(ly, sliderY)) - LEN} />,
+      <Tooth
+        key={`r${i}`}
+        head={head}
+        y={ry}
+        flip
+        x={lerp(CX - OVERLAP, CX + GAP, parting(ry, sliderY)) + LEN}
+      />,
     )
   }
 

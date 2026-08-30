@@ -1,6 +1,6 @@
 'use client'
 
-import { ZipperArt, Slider, ZIPPER_DIMS } from './zipper-art'
+import { ZipperArt, Slider, ZIPPER_DIMS, DEFAULT_PITCH, DEFAULT_HEAD } from './zipper-art'
 import { PALETTES, type PaletteName } from './zipper-palettes'
 
 export type RigTuning = {
@@ -9,6 +9,8 @@ export type RigTuning = {
   angle: number // a little rotateY for depth; large values foreshorten the teeth to slivers
   lag: number // temporal: each band starts this much later than the one above
   fan: number // spatial: each band swings this much further than the one above
+  pitch: number // vertical spacing between teeth — the chain's density
+  head: number // tooth height; overlap with its neighbour is head - pitch/2
   droop: number // degrees of outward tip on the lowest band
   fall: number // px of sag on the lowest band
   shade: number // how much a panel darkens as it turns from the light
@@ -20,6 +22,8 @@ export const DEFAULT_TUNING: RigTuning = {
   angle: 8,
   lag: 0.05,
   fan: 0.08,
+  pitch: DEFAULT_PITCH,
+  head: DEFAULT_HEAD,
   droop: 4,
   fall: 30,
   shade: 0.18,
@@ -72,7 +76,7 @@ function Panel({
                 height: `${t.bands * 100}%`,
               }}
             >
-              <ZipperArt progress={zip} showSlider={false} />
+              <ZipperArt progress={zip} showSlider={false} pitch={t.pitch} head={t.head} />
             </div>
           </div>
         )

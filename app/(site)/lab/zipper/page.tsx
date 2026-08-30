@@ -14,6 +14,8 @@ import {
 import { PALETTE_NAMES, PALETTES, type PaletteName } from '@/components/lab/zipper-palettes'
 
 const knobs: { key: keyof RigTuning; min: number; max: number; step: number; hint: string }[] = [
+  { key: 'pitch', min: 10, max: 40, step: 1, hint: 'chain density — spacing between teeth' },
+  { key: 'head', min: 6, max: 26, step: 1, hint: 'tooth height; overlap with its neighbour is head - pitch/2' },
   { key: 'slide', min: 0, max: 130, step: 2, hint: 'how far each panel travels outward — the main move' },
   { key: 'angle', min: 0, max: 40, step: 1, hint: 'depth tilt; past ~15 the teeth foreshorten to slivers' },
   { key: 'bands', min: 1, max: 16, step: 1, hint: '1 = rigid board, more = floppier fabric' },
@@ -175,6 +177,16 @@ export default function ZipperLab() {
           className="mt-2 w-full"
         />
       </label>
+
+      <p className="mt-14 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+        Density lives in <span className="font-mono text-foreground">pitch</span> and{' '}
+        <span className="font-mono text-foreground">head</span>. Their difference is what
+        matters: teeth overlap by{' '}
+        <span className="font-mono text-foreground">head − pitch/2</span>, currently{' '}
+        <span className="font-mono text-foreground">{(t.head - t.pitch / 2).toFixed(1)}</span>.
+        Below zero the chain breaks into separate blocks; much above six and each tooth
+        starts burying the shading of the one before it.
+      </p>
 
       <h2 className="mt-14 text-sm font-medium">Palette</h2>
       <div className="mt-4 flex flex-wrap gap-3">
