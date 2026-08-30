@@ -55,13 +55,15 @@ function Tooth({ x, y, flip }: { x: number; y: number; flip?: boolean }) {
   return (
     <g transform={`translate(${x} ${y}) ${flip ? 'scale(-1 1)' : ''}`}>
       <path d={d} fill="url(#metal)" />
-      {/* occlusion where the tooth meets the tape — a gradient, not a line */}
-      <path d={d} fill="url(#occl)" />
+      {/* shading along the length, so base and tip are not as bright as the belly */}
+      <path d={d} fill="url(#form)" />
       {/* primary specular, faded at both ends so it has no hard terminator */}
       <rect x={LEN * 0.22} y={-h + 1.6} width={LEN * 0.66} height={1.9} rx={0.95} fill="url(#spec)" />
       {/* reflected light along the bottom edge — the main reason metal reads as
           metal rather than plastic */}
       <rect x={LEN * 0.3} y={h - 2.4} width={LEN * 0.5} height={1.1} rx={0.55} fill="url(#bounce)" />
+      {/* highlight wrapping the flared head */}
+      <rect x={LEN * 0.62} y={-h + 3.4} width={LEN * 0.36} height={HEAD - 7} rx={2.4} fill="url(#tip)" />
     </g>
   )
 }
@@ -108,14 +110,17 @@ export function ZipperArt({
       <defs>
         {/* Real metal is not a linear ramp: a bright rim, a fast falloff, a dark
             core, then light bouncing back up off whatever is underneath. */}
+        {/* A thin rim rather than a bright plateau, and a bottom that stops at
+            metal-lo instead of near-black. The previous ramp ended almost black
+            and began almost white, so every tooth boundary read as an outline. */}
         <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--zip-metal-hi, #ffffff)" />
-          <stop offset="9%" stopColor="var(--zip-metal-hi, #ffffff)" />
-          <stop offset="26%" stopColor="var(--zip-metal, #d7d2c8)" />
+          <stop offset="0%" stopColor="var(--zip-metal, #d7d2c8)" />
+          <stop offset="8%" stopColor="var(--zip-metal-hi, #ffffff)" />
+          <stop offset="24%" stopColor="var(--zip-metal, #d7d2c8)" />
           <stop offset="49%" stopColor="var(--zip-metal-mid, #8f887c)" />
-          <stop offset="73%" stopColor="var(--zip-metal-lo, #4a453e)" />
-          <stop offset="89%" stopColor="var(--zip-metal-mid, #8f887c)" />
-          <stop offset="100%" stopColor="var(--zip-metal-edge, #211f1c)" />
+          <stop offset="74%" stopColor="var(--zip-metal-lo, #4a453e)" />
+          <stop offset="90%" stopColor="var(--zip-metal-mid, #8f887c)" />
+          <stop offset="100%" stopColor="var(--zip-metal-lo, #4a453e)" />
         </linearGradient>
         <linearGradient id="spec" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="rgba(255,255,255,0)" />
@@ -128,9 +133,21 @@ export function ZipperArt({
           <stop offset="45%" stopColor="rgba(255,255,255,.22)" />
           <stop offset="100%" stopColor="rgba(255,255,255,0)" />
         </linearGradient>
-        <linearGradient id="occl" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="rgba(0,0,0,.5)" />
-          <stop offset="22%" stopColor="rgba(0,0,0,0)" />
+        {/* Form along the tooth's length — dark where it sits in the tape, open
+            through the middle, falling away again over the flared tip. Without
+            this the ends are as bright as the belly and read as flat. */}
+        <linearGradient id="form" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="rgba(0,0,0,.6)" />
+          <stop offset="16%" stopColor="rgba(0,0,0,.12)" />
+          <stop offset="58%" stopColor="rgba(0,0,0,0)" />
+          <stop offset="84%" stopColor="rgba(0,0,0,.14)" />
+          <stop offset="100%" stopColor="rgba(0,0,0,.4)" />
+        </linearGradient>
+        {/* the flared head is a rounded form and catches its own highlight */}
+        <linearGradient id="tip" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+          <stop offset="70%" stopColor="rgba(255,255,255,.3)" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
         </linearGradient>
         <linearGradient id="tape" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="var(--zip-tape-lo, #26262c)" />
@@ -145,7 +162,7 @@ export function ZipperArt({
           <stop offset="100%" stopColor="rgba(0,0,0,0)" />
         </radialGradient>
         <filter id="cast" x="-25%" y="-25%" width="160%" height="160%">
-          <feDropShadow dx="0.4" dy="1.5" stdDeviation="1.5" floodColor="#000" floodOpacity="0.5" />
+          <feDropShadow dx="0.4" dy="1.5" stdDeviation="1.5" floodColor="#000" floodOpacity="0.38" />
         </filter>
       </defs>
 
