@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import gsap from 'gsap'
 import { ZipperRig, DEFAULT_TUNING, type RigTuning } from '@/components/lab/zipper-rig'
+import { zipLeave, zipEnter, zipDuration } from '@/components/lab/zipper-timeline'
 
 const knobs: { key: keyof RigTuning; min: number; max: number; step: number; hint: string }[] = [
   { key: 'slide', min: 0, max: 130, step: 2, hint: 'how far each panel travels outward — the main move' },
@@ -19,17 +20,29 @@ export default function ZipperLab() {
   const [zip, setZip] = useState(1)
   const [swing, setSwing] = useState(0)
   const [t, setT] = useState<RigTuning>(DEFAULT_TUNING)
+  const [speed, setSpeed] = useState(1)
   const tl = useRef<gsap.core.Timeline | null>(null)
 
-  const play = () => {
+  const run = (phase: 'leave' | 'enter' | 'cycle') => {
     tl.current?.kill()
-    const v = { zip: 1, swing: 0 }
-    setZip(1)
-    setSwing(0)
-    tl.current = gsap
-      .timeline({ onUpdate: () => { setZip(v.zip); setSwing(v.swing) } })
-      .to(v, { zip: 0, duration: 0.85, ease: 'power2.inOut' })
-      .to(v, { swing: 1, duration: 1.1, ease: 'back.out(1.3)' }, '-=0.35')
+    // leave starts from a page on screen; enter starts from a sealed one
+    const from = phase === 'leave' ? { zip: 0, swing: 1 } : { zip: 1, swing: 0 }
+    const v = { ...from }
+    setZip(v.zip)
+    setSwing(v.swing)
+
+    const sync = () => { setZip(v.zip); setSwing(v.swing) }
+
+    if (phase === 'cycle') {
+      const master = gsap.timeline()
+      master.add(zipLeave(v, { speed, onUpdate: sync }))
+      master.add(zipEnter(v, { speed, onUpdate: sync }), '+=0.15')
+      tl.current = master
+    } else {
+      tl.current = phase === 'leave'
+        ? zipLeave(v, { speed, onUpdate: sync })
+        : zipEnter(v, { speed, onUpdate: sync })
+    }
   }
 
   return (
@@ -76,12 +89,38 @@ export default function ZipperLab() {
         )}
       </div>
 
-      <button
-        onClick={play}
-        className="mt-6 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-      >
-        Play the enter sequence
-      </button>
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => run('leave')}
+          className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+        >
+          Leave — zip it shut
+        </button>
+        <button
+          onClick={() => run('enter')}
+          className="rounded-lg border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
+        >
+          Enter — unzip
+        </button>
+        <button
+          onClick={() => run('cycle')}
+          className="rounded-lg border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
+        >
+          Full cycle
+        </button>
+      </div>
+
+      <label className="mt-6 block max-w-sm">
+        <span className="font-mono text-xs text-muted-foreground">
+          speed · {speed.toFixed(2)}x{' '}
+          <span className="opacity-60">— round trip ≈ {zipDuration(speed)}ms</span>
+        </span>
+        <input
+          type="range" min={0.4} max={2.5} step={0.05} value={speed}
+          onChange={(e) => setSpeed(+e.target.value)}
+          className="mt-2 w-full"
+        />
+      </label>
 
       <h2 className="mt-14 text-sm font-medium">Tuning</h2>
       <div className="mt-4 grid gap-x-8 gap-y-5 sm:grid-cols-2">
