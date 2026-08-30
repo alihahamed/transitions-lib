@@ -1,6 +1,7 @@
 'use client'
 
 import { ZipperArt, Slider, ZIPPER_DIMS } from './zipper-art'
+import { PALETTES, type PaletteName } from './zipper-palettes'
 
 export type RigTuning = {
   bands: number
@@ -84,11 +85,13 @@ export function ZipperRig({
   zip,
   swing,
   tuning = DEFAULT_TUNING,
+  palette = 'nickel',
   behind,
 }: {
   zip: number
   swing: number
   tuning?: RigTuning
+  palette?: PaletteName
   /** The page being revealed. Without it there is nothing to judge the swing against. */
   behind?: React.ReactNode
 }) {
@@ -98,7 +101,14 @@ export function ZipperRig({
   return (
     <div
       className="relative h-full w-full overflow-hidden"
-      style={{ perspective: '1400px', perspectiveOrigin: '50% 45%' }}
+      style={
+        {
+          perspective: '1400px',
+          perspectiveOrigin: '50% 45%',
+          // every colour in the artwork reads from these
+          ...PALETTES[palette],
+        } as React.CSSProperties
+      }
     >
       {behind}
       <Panel side="left" zip={zip} swing={swing} t={tuning} />

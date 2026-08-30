@@ -9,7 +9,9 @@ import {
   zipDuration,
   DEFAULT_SEAL_HOLD,
   DEFAULT_UNZIP,
+  DEFAULT_OVERSHOOT,
 } from '@/components/lab/zipper-timeline'
+import { PALETTE_NAMES, PALETTES, type PaletteName } from '@/components/lab/zipper-palettes'
 
 const knobs: { key: keyof RigTuning; min: number; max: number; step: number; hint: string }[] = [
   { key: 'slide', min: 0, max: 130, step: 2, hint: 'how far each panel travels outward — the main move' },
@@ -29,6 +31,8 @@ export default function ZipperLab() {
   const [speed, setSpeed] = useState(1)
   const [sealHold, setSealHold] = useState(DEFAULT_SEAL_HOLD)
   const [unzip, setUnzip] = useState(DEFAULT_UNZIP)
+  const [overshoot, setOvershoot] = useState(DEFAULT_OVERSHOOT)
+  const [palette, setPalette] = useState<PaletteName>('nickel')
   const tl = useRef<gsap.core.Timeline | null>(null)
 
   const run = (phase: 'leave' | 'enter' | 'cycle') => {
@@ -47,12 +51,12 @@ export default function ZipperLab() {
       master.add(zipLeave(v, { speed, onUpdate: sync }))
       // no gap here — the enter timeline holds at the seal itself, so the real
       // transition gets the same beat the cycle does
-      master.add(zipEnter(v, { speed, sealHold, unzip, onUpdate: sync }))
+      master.add(zipEnter(v, { speed, sealHold, unzip, overshoot, onUpdate: sync }))
       tl.current = master
     } else {
       tl.current = phase === 'leave'
         ? zipLeave(v, { speed, onUpdate: sync })
-        : zipEnter(v, { speed, sealHold, unzip, onUpdate: sync })
+        : zipEnter(v, { speed, sealHold, unzip, overshoot, onUpdate: sync })
     }
   }
 
@@ -70,6 +74,7 @@ export default function ZipperLab() {
           zip={zip}
           swing={swing}
           tuning={t}
+          palette={palette}
           behind={
             <div className="absolute inset-0 flex flex-col justify-center gap-4 bg-[#0e5c4a] px-12">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-white/50">
@@ -147,6 +152,20 @@ export default function ZipperLab() {
 
       <label className="mt-5 block max-w-sm">
         <span className="font-mono text-xs text-muted-foreground">
+          overshoot · {overshoot.toFixed(1)}{' '}
+          <span className="opacity-60">
+            — 0 is ease-in-out; higher carries the panels past and back
+          </span>
+        </span>
+        <input
+          type="range" min={0} max={3} step={0.1} value={overshoot}
+          onChange={(e) => setOvershoot(+e.target.value)}
+          className="mt-2 w-full"
+        />
+      </label>
+
+      <label className="mt-5 block max-w-sm">
+        <span className="font-mono text-xs text-muted-foreground">
           unzip · {unzip.toFixed(2)}s{' '}
           <span className="opacity-60">— how long the slider takes to run back up</span>
         </span>
@@ -156,6 +175,29 @@ export default function ZipperLab() {
           className="mt-2 w-full"
         />
       </label>
+
+      <h2 className="mt-14 text-sm font-medium">Palette</h2>
+      <div className="mt-4 flex flex-wrap gap-3">
+        {PALETTE_NAMES.map((name) => (
+          <button
+            key={name}
+            onClick={() => setPalette(name)}
+            className={`flex items-center gap-2.5 rounded-full border px-3 py-1.5 font-mono text-xs transition-colors ${
+              palette === name
+                ? 'border-foreground/50 text-foreground'
+                : 'border-border text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span
+              className="size-4 rounded-full border border-black/40"
+              style={{
+                background: `linear-gradient(160deg, ${PALETTES[name]['--zip-metal-hi']}, ${PALETTES[name]['--zip-metal-mid']}, ${PALETTES[name]['--zip-metal-edge']})`,
+              }}
+            />
+            {name}
+          </button>
+        ))}
+      </div>
 
       <h2 className="mt-14 text-sm font-medium">Tuning</h2>
       <div className="mt-4 grid gap-x-8 gap-y-5 sm:grid-cols-2">

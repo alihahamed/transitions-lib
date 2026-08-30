@@ -20,9 +20,17 @@ const CLOSING: Step[] = [
 const CLOSING_TIME = CLOSING.reduce((n, s) => n + ('hold' in s ? s.hold : s.dur), 0)
 
 const PANELS_IN = 0.55
-export const DEFAULT_UNZIP = 1.2
+export const DEFAULT_UNZIP = 1.85
 const PANELS_OUT = 1.05
 const OVERLAP = 0.2
+
+/**
+ * Overshoot on the outgoing panels. 0 is a plain ease-in-out; higher values
+ * carry them past their resting position and let them fall back, which reads
+ * as weight. Only ever applied on the way out — overshooting on the way in
+ * would send the two panels through each other.
+ */
+export const DEFAULT_OVERSHOOT = 0
 
 /** Beat between the screen sealing and the zip coming back down. */
 export const DEFAULT_SEAL_HOLD = 0.4
@@ -63,16 +71,25 @@ export function zipEnter(
     speed = 1,
     sealHold = DEFAULT_SEAL_HOLD,
     unzip = DEFAULT_UNZIP,
+    overshoot = DEFAULT_OVERSHOOT,
     onUpdate,
     onComplete,
-  }: Opts & { sealHold?: number; unzip?: number } = {},
+  }: Opts & { sealHold?: number; unzip?: number; overshoot?: number } = {},
 ) {
   const tl = gsap.timeline({ onUpdate, onComplete })
 
   if (sealHold > 0) tl.to({}, { duration: sealHold })
 
   tl.to(v, { zip: 0, duration: unzip, ease: 'power2.inOut' })
-    .to(v, { swing: 1, duration: PANELS_OUT, ease: 'power2.inOut' }, `-=${OVERLAP}`)
+    .to(
+      v,
+      {
+        swing: 1,
+        duration: PANELS_OUT,
+        ease: overshoot > 0 ? `back.out(${overshoot})` : 'power2.inOut',
+      },
+      `-=${OVERLAP}`,
+    )
 
   tl.timeScale(speed)
   return tl
