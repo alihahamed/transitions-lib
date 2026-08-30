@@ -64,10 +64,13 @@ function Tooth({ x, y, flip }: { x: number; y: number; flip?: boolean }) {
 export function ZipperArt({
   progress = 1,
   view,
+  showSlider = true,
 }: {
   progress?: number
   /** Crop to a region, for inspecting the teeth up close. */
   view?: string
+  /** Off when the rig draws the slider in its own layer, above the hinged panels. */
+  showSlider?: boolean
 }) {
   const sliderY = progress * H // 1 = closed, slider has run all the way down
 
@@ -112,16 +115,16 @@ export function ZipperArt({
           <stop offset="100%" stopColor="rgba(255,255,255,.1)" />
         </linearGradient>
         <linearGradient id="tape" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="var(--zip-tape-lo, #17171a)" />
-          <stop offset="50%" stopColor="var(--zip-tape, #232329)" />
-          <stop offset="100%" stopColor="var(--zip-tape-lo, #17171a)" />
+          <stop offset="0%" stopColor="var(--zip-tape-lo, #26262c)" />
+          <stop offset="50%" stopColor="var(--zip-tape, #3d3d46)" />
+          <stop offset="100%" stopColor="var(--zip-tape-lo, #26262c)" />
         </linearGradient>
       </defs>
 
       <path d={leftTape} fill="url(#tape)" />
       <path d={rightTape} fill="url(#tape)" />
       {teeth}
-      <Slider y={progress === 1 ? H - 34 : progress === 0 ? 34 : sliderY} />
+      {showSlider && <Slider y={progress === 1 ? H - 34 : progress === 0 ? 34 : sliderY} />}
     </svg>
   )
 }
@@ -131,7 +134,7 @@ export function ZipperArt({
  * the two rows feed in. Getting this backwards is what made the parted teeth
  * look detached from the slider.
  */
-function Slider({ y }: { y: number }) {
+export function Slider({ y }: { y: number }) {
   const w = SLIDER_W
   const h = SLIDER_H
   const neck = 17
@@ -171,3 +174,5 @@ function Slider({ y }: { y: number }) {
     </g>
   )
 }
+
+export const ZIPPER_DIMS = { W, H, CX }
