@@ -20,7 +20,7 @@ const CLOSING: Step[] = [
 const CLOSING_TIME = CLOSING.reduce((n, s) => n + ('hold' in s ? s.hold : s.dur), 0)
 
 const PANELS_IN = 0.55
-const UNZIP = 0.95
+export const DEFAULT_UNZIP = 1.2
 const PANELS_OUT = 1.05
 const OVERLAP = 0.2
 
@@ -59,20 +59,30 @@ export function zipLeave(v: ZipState, { speed = 1, onUpdate, onComplete }: Opts 
  */
 export function zipEnter(
   v: ZipState,
-  { speed = 1, sealHold = DEFAULT_SEAL_HOLD, onUpdate, onComplete }: Opts & { sealHold?: number } = {},
+  {
+    speed = 1,
+    sealHold = DEFAULT_SEAL_HOLD,
+    unzip = DEFAULT_UNZIP,
+    onUpdate,
+    onComplete,
+  }: Opts & { sealHold?: number; unzip?: number } = {},
 ) {
   const tl = gsap.timeline({ onUpdate, onComplete })
 
   if (sealHold > 0) tl.to({}, { duration: sealHold })
 
-  tl.to(v, { zip: 0, duration: UNZIP, ease: 'power2.inOut' })
+  tl.to(v, { zip: 0, duration: unzip, ease: 'power2.inOut' })
     .to(v, { swing: 1, duration: PANELS_OUT, ease: 'power2.inOut' }, `-=${OVERLAP}`)
 
   tl.timeScale(speed)
   return tl
 }
 
-export const zipDuration = (speed = 1, sealHold = DEFAULT_SEAL_HOLD) =>
+export const zipDuration = (
+  speed = 1,
+  sealHold = DEFAULT_SEAL_HOLD,
+  unzip = DEFAULT_UNZIP,
+) =>
   Math.round(
-    ((PANELS_IN + CLOSING_TIME + sealHold + UNZIP + PANELS_OUT - OVERLAP) / speed) * 1000,
+    ((PANELS_IN + CLOSING_TIME + sealHold + unzip + PANELS_OUT - OVERLAP) / speed) * 1000,
   )
