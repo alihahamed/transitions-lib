@@ -336,3 +336,148 @@
     animation: none;
   }
 }
+
+/* ---------- fold-away ---------- */
+
+:root {
+  --fold-paper: #d8c9ad;
+  --fold-paper-back: #bfae8e;
+  --fold-crease: rgba(60, 44, 20, 0.22);
+  --fold-shadow-color: 28 20 8;
+}
+
+/*
+ * perspective lives here and preserve-3d one level down, so clipping the
+ * overhang on a turned rig cannot flatten the fold.
+ */
+.foldaway {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  perspective: 1500px;
+  perspective-origin: 50% 50%;
+}
+
+/*
+ * The fold is always built as horizontal bands collapsing onto the bottom edge.
+ * Pointing it at another edge turns the whole rig rather than rebuilding the
+ * geometry — the lighting turns with it, which is what you want anyway.
+ */
+.foldaway-rig {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%) rotate(var(--fold-turn, 0deg));
+  transform-style: preserve-3d;
+}
+
+.fold-bottom { --fold-turn: 0deg; }
+.fold-top    { --fold-turn: 180deg; }
+.fold-left   { --fold-turn: 90deg; }
+.fold-right  { --fold-turn: -90deg; }
+
+/* Turned a quarter, the rig's axes swap — it needs the viewport's other side. */
+.fold-left .foldaway-rig,
+.fold-right .foldaway-rig {
+  width: 100vh;
+  height: 100vw;
+}
+
+.foldaway-slide {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.fold-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transform-style: preserve-3d;
+}
+
+/* The part of the sheet lying on the edge. Everything else folds onto it. */
+.fold-root {
+  bottom: 0;
+  height: calc(100% / var(--fold-panels, 4));
+}
+
+/* Each crease hinges off the top edge of the panel below it. */
+.fold-band[data-fold] {
+  bottom: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+}
+
+/*
+ * At rest the shade is 0, so the sheet reads as one continuous piece of paper
+ * with faint creases. All the directional lighting rides on --fold-shade, which
+ * is animated alongside the rotation — that is what stops a spread sheet from
+ * looking like a stack of stripes.
+ */
+.fold-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  background:
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.014) 0 2px, transparent 2px 5px),
+    var(--fold-paper);
+  box-shadow:
+    inset 0 2px 0 -1px rgba(255, 255, 255, 0.22),
+    inset 0 -3px 4px -2px var(--fold-crease),
+    0 22px 48px -14px rgb(var(--fold-shadow-color) / calc(var(--fold-shade, 0) * 1.6));
+}
+
+.fold-back {
+  transform: rotateX(180deg);
+  background:
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.02) 0 2px, transparent 2px 5px),
+    var(--fold-paper-back);
+}
+
+/*
+ * The lit hinge and the dark leading edge. Because the back face is flipped,
+ * "to top" points the other way in world space — which is exactly right, since
+ * a turned panel's leading edge is at the opposite end.
+ */
+.fold-face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgb(var(--fold-shadow-color) / 0.12),
+    rgb(var(--fold-shadow-color) / 0.95)
+  );
+  opacity: var(--fold-shade, 0);
+}
+
+.paper-kraft {
+  --fold-paper: #d8c9ad;
+  --fold-paper-back: #bfae8e;
+  --fold-crease: rgba(60, 44, 20, 0.22);
+  --fold-shadow-color: 28 20 8;
+}
+
+.paper-newsprint {
+  --fold-paper: #e9e5db;
+  --fold-paper-back: #d0cabc;
+  --fold-crease: rgba(40, 38, 32, 0.2);
+  --fold-shadow-color: 22 21 18;
+}
+
+.paper-blueprint {
+  --fold-paper: #1f4470;
+  --fold-paper-back: #17334f;
+  --fold-crease: rgba(0, 0, 0, 0.4);
+  --fold-shadow-color: 3 10 20;
+}
+
+.paper-ink {
+  --fold-paper: #26242a;
+  --fold-paper-back: #1a181d;
+  --fold-crease: rgba(0, 0, 0, 0.55);
+  --fold-shadow-color: 0 0 0;
+}
