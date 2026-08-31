@@ -336,3 +336,98 @@
     animation: none;
   }
 }
+
+/* ---------- push ---------- */
+
+/*
+ * Both pages travel the same direction, the outgoing one slower, so it is
+ * overtaken rather than shoved off. Nothing but a transform on each snapshot
+ * and a brightness on the one being covered — no JavaScript touches a frame.
+ */
+
+:root {
+  /* Material 3's emphasized curve: leaves quickly, arrives gently. */
+  --push-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.vt-push::view-transition-group(root) {
+  animation: none;
+}
+
+.vt-push::view-transition-image-pair(root) {
+  isolation: auto;
+}
+
+.vt-push::view-transition-old(root) {
+  animation: push-recede var(--vt-duration, 0.42s) var(--push-ease) both;
+  mix-blend-mode: normal;
+  z-index: 1;
+}
+
+.vt-push::view-transition-new(root) {
+  animation: push-arrive var(--vt-duration, 0.42s) var(--push-ease) both;
+  mix-blend-mode: normal;
+  z-index: 2;
+  /* Reads the seam between the two pages while they overlap. */
+  box-shadow: var(--push-shadow, -18px 0 48px rgba(0, 0, 0, 0.34));
+}
+
+/*
+ * brightness rather than opacity: the outgoing page has the incoming one
+ * already rendered behind it, so fading it out would cross-dissolve the two
+ * instead of darkening one.
+ */
+@keyframes push-recede {
+  to {
+    transform: translate3d(var(--push-out-x, 0), var(--push-out-y, 0), 0);
+    filter: brightness(var(--push-dim, 0.78));
+  }
+}
+
+@keyframes push-arrive {
+  from {
+    transform: translate3d(var(--push-in-x, 100%), var(--push-in-y, 0), 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.push-left {
+  --push-in-x: 100%;
+  --push-in-y: 0;
+  --push-out-x: calc(var(--push-parallax, 28%) * -1);
+  --push-out-y: 0;
+  --push-shadow: -18px 0 48px rgba(0, 0, 0, 0.34);
+}
+
+.push-right {
+  --push-in-x: -100%;
+  --push-in-y: 0;
+  --push-out-x: var(--push-parallax, 28%);
+  --push-out-y: 0;
+  --push-shadow: 18px 0 48px rgba(0, 0, 0, 0.34);
+}
+
+.push-up {
+  --push-in-x: 0;
+  --push-in-y: 100%;
+  --push-out-x: 0;
+  --push-out-y: calc(var(--push-parallax, 28%) * -1);
+  --push-shadow: 0 -18px 48px rgba(0, 0, 0, 0.34);
+}
+
+.push-down {
+  --push-in-x: 0;
+  --push-in-y: -100%;
+  --push-out-x: 0;
+  --push-out-y: var(--push-parallax, 28%);
+  --push-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-push::view-transition-old(root),
+  .vt-push::view-transition-new(root) {
+    animation: none;
+  }
+}

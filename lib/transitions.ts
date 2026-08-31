@@ -48,6 +48,49 @@ export type TransitionMeta = {
 
 export const transitions: TransitionMeta[] = [
   {
+    slug: 'push',
+    name: 'Push',
+    tagline: 'The page you are leaving is overtaken rather than shoved off.',
+    description:
+      'Both pages travel the same direction, the outgoing one at a fraction of the speed, so it falls behind and is covered. That difference in rate is the whole effect — two things moving the same way at different speeds read as depth without anything being scaled, tilted or faded. The incoming page carries a shadow on its leading edge so the seam between them stays legible while they overlap.',
+    engine: 'Native',
+    dependencies: [],
+    accent: ['#20242c', '#8d97a8', '#2c2721'],
+    duration: 420,
+    requires:
+      'The View Transitions API — Chrome 111+, Safari 18+, Firefox 132+. Older browsers navigate normally with no animation. Nothing breaks, but there is no fallback effect.',
+    usage: `import { PushTransition } from '@/components/push'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <PushTransition direction="left">{children}</PushTransition>
+      </body>
+    </html>
+  )
+}`,
+    props: [
+      { name: 'children', type: 'ReactNode', def: '—', description: 'Your app. Wrap the contents of <body>. (Required)' },
+      { name: 'direction', type: '"left" | "right" | "up" | "down"', def: '"left"', description: 'Which way the pages travel. The incoming one enters from the opposite edge.' },
+      { name: 'duration', type: 'number', def: '0.42', description: 'Seconds the swap takes.' },
+      { name: 'speed', type: 'number', def: '1', description: 'Divides the duration. Above 1 is faster.' },
+      { name: 'parallax', type: 'number', def: '0.28', description: "How far the outgoing page travels, as a fraction of the incoming page's distance. At 0 it stays put and is simply covered; around 0.3 matches a native navigation push; at 1 both travel together as one strip." },
+      { name: 'dim', type: 'number', def: '0.22', description: 'How far the outgoing page darkens as it is covered, 0 to 1.' },
+    ],
+    controls: [
+      { kind: 'select', key: 'direction', label: 'Direction', options: ['left', 'right', 'up', 'down'], def: 'left' },
+      { kind: 'range', key: 'duration', label: 'Duration', min: 0.15, max: 1.2, step: 0.01, def: 0.42 },
+      { kind: 'range', key: 'parallax', label: 'Parallax', min: 0, max: 1, step: 0.02, def: 0.28 },
+      { kind: 'range', key: 'dim', label: 'Dim', min: 0, max: 0.7, step: 0.01, def: 0.22 },
+    ],
+    notes: [
+      'No dependencies and no JavaScript animating anything — the stylesheet drives both halves.',
+      'Browser back and forward are not animated — history navigation snaps.',
+    ],
+    ready: false,
+  },
+  {
     slug: 'riser',
     name: 'Riser',
     tagline: 'The page behind drops back while the next one rises over it.',

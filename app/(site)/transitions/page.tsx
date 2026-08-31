@@ -11,7 +11,7 @@ export default function Gallery() {
       </p>
 
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {transitions.map((t) => (
+        {transitions.filter((t) => t.ready).map((t) => (
           <TransitionCard key={t.slug} t={t} />
         ))}
       </div>
