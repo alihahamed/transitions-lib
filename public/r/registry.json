@@ -4,6 +4,32 @@
   "homepage": "https://github.com/alihahamed/transitions-lib",
   "items": [
     {
+      "name": "foldaway",
+      "type": "registry:component",
+      "title": "Fold-away",
+      "description": "A sheet of paper unfolds across the screen, the route swaps behind it, then it folds itself back into a strip and drops off the edge. GSAP.",
+      "dependencies": [
+        "gsap",
+        "next-transition-router"
+      ],
+      "files": [
+        {
+          "path": "registry/transitions/foldaway.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transition-core.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transitions.css",
+          "type": "registry:file",
+          "target": "@components/transitions.css"
+        }
+      ],
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { FoldAwayTransition } from \"@/components/foldaway\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <FoldAwayTransition panels={4}>{children}</FoldAwayTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\npanels sets how many sections the sheet folds into \u2014 more panels means more\ncreases and a shorter strip when it collapses. direction takes bottom, top,\nleft or right: the edge the sheet folds down to and leaves through.\n\nColour: four paper stocks ship as presets \u2014 paper=\"kraft\" (default),\n\"newsprint\", \"blueprint\" or \"ink\". For anything else pass paper=\"custom\" and\nset --fold-paper, --fold-paper-back and --fold-crease yourself in\ncomponents/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~1.1s)."
+    },
+    {
       "name": "riser",
       "type": "registry:component",
       "title": "Riser",

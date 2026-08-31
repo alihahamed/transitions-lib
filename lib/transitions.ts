@@ -48,6 +48,59 @@ export type TransitionMeta = {
 
 export const transitions: TransitionMeta[] = [
   {
+    slug: 'foldaway',
+    name: 'Fold-away',
+    tagline: 'A sheet unfolds over the page, then folds itself up and drops off the edge.',
+    description:
+      'The panels are nested rather than stacked — each one hinges off the top edge of the one below it inside a shared 3D context, so rotating a panel carries every panel above it and the sheet collapses onto itself the way folded paper actually does. It opens the shallowest crease first and closes the deepest first, which is the order your hands would use. The route swaps while the sheet is spread, so the fold is the reveal.',
+    engine: 'GSAP',
+    dependencies: ['gsap', 'next-transition-router'],
+    accent: ['#d8c9ad', '#bfae8e', '#5c4a2c'],
+    duration: 2100,
+    usage: `import { FoldAwayTransition } from '@/components/foldaway'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <FoldAwayTransition panels={4}>{children}</FoldAwayTransition>
+      </body>
+    </html>
+  )
+}`,
+    swatches: [
+      { name: 'kraft', from: '#d8c9ad', to: '#bfae8e' },
+      { name: 'newsprint', from: '#e9e5db', to: '#d0cabc' },
+      { name: 'blueprint', from: '#1f4470', to: '#17334f' },
+      { name: 'ink', from: '#26242a', to: '#1a181d' },
+    ],
+    props: [
+      { name: 'children', type: 'ReactNode', def: '—', description: 'Your app. Wrap the contents of <body>. (Required)' },
+      { name: 'direction', type: '"bottom" | "top" | "left" | "right"', def: '"bottom"', description: 'Which edge the sheet folds down to and leaves through.' },
+      { name: 'panels', type: 'number', def: '4', description: 'How many panels the sheet is folded into. More panels means more creases and a taller stack.' },
+      { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole timeline. Above 1 is faster.' },
+      { name: 'unfold', type: 'number', def: '0.5', description: 'Seconds one crease takes to open.' },
+      { name: 'fold', type: 'number', def: '0.42', description: 'Seconds one crease takes to close.' },
+      { name: 'stagger', type: 'number', def: '0.12', description: 'Seconds between one crease moving and the next.' },
+      { name: 'paper', type: '"kraft" | "newsprint" | "blueprint" | "ink" | "custom"', def: '"kraft"', description: 'Paper stock. "custom" applies no preset, leaving your own CSS variables in charge.' },
+    ],
+    controls: [
+      { kind: 'select', key: 'direction', label: 'Direction', options: ['bottom', 'top', 'left', 'right'], def: 'bottom' },
+      { kind: 'select', key: 'paper', label: 'Paper', options: ['kraft', 'newsprint', 'blueprint', 'ink'], def: 'kraft' },
+      { kind: 'range', key: 'panels', label: 'Panels', min: 2, max: 8, step: 1, def: 4 },
+      { kind: 'range', key: 'speed', label: 'Speed', min: 0.4, max: 2.5, step: 0.05, def: 1 },
+      { kind: 'range', key: 'unfold', label: 'Unfold', min: 0.2, max: 1.4, step: 0.02, def: 0.5 },
+      { kind: 'range', key: 'fold', label: 'Fold', min: 0.2, max: 1.4, step: 0.02, def: 0.42 },
+      { kind: 'range', key: 'stagger', label: 'Stagger', min: 0, max: 0.4, step: 0.01, def: 0.12 },
+    ],
+    notes: [
+      'Four paper stocks ship as presets. For anything else pass paper="custom" and set --fold-paper, --fold-paper-back and --fold-crease yourself.',
+      'Nothing is captured or screenshotted — the sheet is its own object, so it folds identically over any page.',
+      'Browser back and forward are not animated — history navigation snaps.',
+    ],
+    ready: true,
+  },
+  {
     slug: 'riser',
     name: 'Riser',
     tagline: 'The page behind drops back while the next one rises over it.',
