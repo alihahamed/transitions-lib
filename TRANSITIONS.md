@@ -129,6 +129,12 @@ exists.
 
 - **Fade, blur, plain slide.** The premise of the library is that these already
   exist everywhere and are not worth installing anything for.
+- **Fold-away.** Built and removed. Two lessons worth keeping: a full-bleed
+  sheet has its perspective convergence clipped by the viewport, so a fold
+  reads as flat stripes sliding no matter how it is shaded; and an object
+  covering the page can never feel as good as moving the pages themselves,
+  because it puts a prop between the reader and their content. If it is ever
+  revisited, the sheet has to be inset and it has to be short.
 - **Anything needing three.js.** 101 KB gzipped against the ~30 KB the whole
   library currently weighs, plus a `.glb` the shadcn registry cannot ship at
   all. Head-on for a second and a half, shading fakes it convincingly — see how
