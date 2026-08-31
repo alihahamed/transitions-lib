@@ -339,23 +339,32 @@
 
 /* ---------- fold-away ---------- */
 
+/*
+ * Nothing here is animated through a custom property. Driving shading off a
+ * variable forces a style recalc and a full repaint of four viewport-sized
+ * layers every frame, which drops about a quarter of them. Every moving part
+ * below is either a transform or an opacity on its own element, both of which
+ * the compositor can handle without repainting.
+ */
+
 :root {
-  --fold-paper: #d8c9ad;
-  --fold-paper-back: #bfae8e;
-  --fold-crease: rgba(60, 44, 20, 0.22);
-  --fold-shadow-color: 28 20 8;
+  --fold-paper: #ded0b4;
+  --fold-crease: rgba(60, 44, 20, 0.24);
+  --fold-shadow-color: 38 27 12;
+  --fold-table: #221d16;
 }
 
-/*
- * perspective lives here and preserve-3d one level down, so clipping the
- * overhang on a turned rig cannot flatten the fold.
- */
 .foldaway {
   position: absolute;
   inset: 0;
   overflow: clip;
-  perspective: 1500px;
-  perspective-origin: 50% 50%;
+  /*
+   * Short enough to bend the sheet's edges visibly, and viewed from slightly
+   * above centre so the fold at the bottom is seen at an angle rather than
+   * dead on.
+   */
+  perspective: 1250px;
+  perspective-origin: 50% 38%;
 }
 
 /*
@@ -391,6 +400,26 @@
   transform-style: preserve-3d;
 }
 
+/* The surface the sheet lies on. This is the part that actually hides the page. */
+.fold-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 30%, rgba(255, 255, 255, 0.07), transparent 70%),
+    var(--fold-table);
+}
+
+/*
+ * Inset on purpose. A full-bleed sheet has its side edges clipped by the
+ * viewport, so you never see the lifted panel taper and the fold reads as flat
+ * stripes sliding. The margin is what makes it look like paper in space.
+ */
+.fold-sheet {
+  position: absolute;
+  inset: calc(var(--fold-inset, 12%) * 0.55) var(--fold-inset, 12%);
+  transform-style: preserve-3d;
+}
+
 .fold-band {
   position: absolute;
   left: 0;
@@ -411,73 +440,77 @@
   transform-origin: 50% 100%;
 }
 
-/*
- * At rest the shade is 0, so the sheet reads as one continuous piece of paper
- * with faint creases. All the directional lighting rides on --fold-shade, which
- * is animated alongside the rotation — that is what stops a spread sheet from
- * looking like a stack of stripes.
- */
+/* backface-visibility stays visible — the reverse of the sheet is the sheet. */
 .fold-face {
   position: absolute;
   inset: 0;
-  backface-visibility: hidden;
   background:
-    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.014) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.013) 0 2px, transparent 2px 5px),
     var(--fold-paper);
+  /* A fixed lift off the table, plus the crease line at the hinge edge. */
   box-shadow:
-    inset 0 2px 0 -1px rgba(255, 255, 255, 0.22),
-    inset 0 -3px 4px -2px var(--fold-crease),
-    0 22px 48px -14px rgb(var(--fold-shadow-color) / calc(var(--fold-shade, 0) * 1.6));
-}
-
-.fold-back {
-  transform: rotateX(180deg);
-  background:
-    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.02) 0 2px, transparent 2px 5px),
-    var(--fold-paper-back);
+    0 14px 30px -10px rgb(var(--fold-shadow-color) / 0.5),
+    inset 0 2px 0 -1px rgba(255, 255, 255, 0.3),
+    inset 0 -3px 4px -2px var(--fold-crease);
 }
 
 /*
- * The lit hinge and the dark leading edge. Because the back face is flipped,
- * "to top" points the other way in world space — which is exactly right, since
- * a turned panel's leading edge is at the opposite end.
+ * The lit hinge and the shaded leading edge. Opacity is animated, the gradient
+ * is not. Because the back face is flipped, "to top" points the other way in
+ * world space — which is right, since a turned panel's leading edge is at the
+ * opposite end.
  */
-.fold-face::after {
-  content: '';
+.fold-shade {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to top,
-    rgb(var(--fold-shadow-color) / 0.12),
+    rgb(var(--fold-shadow-color) / 0.04),
+    rgb(var(--fold-shadow-color) / 0.9)
+  );
+}
+
+/*
+ * The shadow a flap throws onto the panel it is closing over. It lives in that
+ * panel's own frame, so it stays painted on the surface as the sheet turns.
+ */
+.fold-cast {
+  position: absolute;
+  inset: 0;
+  transform: translateZ(0.6px);
+  backface-visibility: hidden;
+  background: linear-gradient(
+    to top,
+    rgb(var(--fold-shadow-color) / 0.1),
+    rgb(var(--fold-shadow-color) / 0.8) 65%,
     rgb(var(--fold-shadow-color) / 0.95)
   );
-  opacity: var(--fold-shade, 0);
 }
 
 .paper-kraft {
-  --fold-paper: #d8c9ad;
-  --fold-paper-back: #bfae8e;
-  --fold-crease: rgba(60, 44, 20, 0.22);
-  --fold-shadow-color: 28 20 8;
+  --fold-paper: #ded0b4;
+  --fold-crease: rgba(60, 44, 20, 0.24);
+  --fold-shadow-color: 38 27 12;
+  --fold-table: #221d16;
 }
 
 .paper-newsprint {
-  --fold-paper: #e9e5db;
-  --fold-paper-back: #d0cabc;
-  --fold-crease: rgba(40, 38, 32, 0.2);
-  --fold-shadow-color: 22 21 18;
+  --fold-paper: #eeebe2;
+  --fold-crease: rgba(40, 38, 32, 0.22);
+  --fold-shadow-color: 30 28 24;
+  --fold-table: #1b1a17;
 }
 
 .paper-blueprint {
-  --fold-paper: #1f4470;
-  --fold-paper-back: #17334f;
-  --fold-crease: rgba(0, 0, 0, 0.4);
-  --fold-shadow-color: 3 10 20;
+  --fold-paper: #24507f;
+  --fold-crease: rgba(0, 0, 0, 0.42);
+  --fold-shadow-color: 4 12 24;
+  --fold-table: #0b1420;
 }
 
 .paper-ink {
-  --fold-paper: #26242a;
-  --fold-paper-back: #1a181d;
-  --fold-crease: rgba(0, 0, 0, 0.55);
+  --fold-paper: #2e2c33;
+  --fold-crease: rgba(0, 0, 0, 0.6);
   --fold-shadow-color: 0 0 0;
+  --fold-table: #0d0c0f;
 }
