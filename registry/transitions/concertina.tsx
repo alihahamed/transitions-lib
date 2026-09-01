@@ -74,18 +74,63 @@ const PITCH = SLAT_W + GAP * 2
  * than interpolate across the units it snaps straight to the end — the page
  * arrived at the slot in a frame instead of travelling there.
  */
-const clipAt = (p: number, bow: number) =>
-  `inset(${slotTop(bow) * p}vh ${((100 - SLAT_W) / 2) * p}vw)`
-
 /*
- * Where the arc's curve crosses the middle of the row, which is how far down a
- * centre slat is bitten. The page sits above the arcs, so clipping it to the
- * full slat height would leave it standing proud of the neighbours it is meant
- * to be one of. ARC_H is the arc element's height and 30/60 its flat edge in
- * viewBox units.
+ * Where the arc's curve crosses the middle of the row, in vh. The lead is sized
+ * to this so it sits flush with the slats either side of it rather than
+ * standing proud of them.
  */
 const ARC_H = 50
 const slotTop = (bow: number) => ((30 + bow) / 60) * ARC_H
+/** Height of the slot, once the arc has taken its bite out of both ends. */
+const slotH = (bow: number) => 100 - 2 * slotTop(bow)
+
+/**
+ * The page's crop, as a path that carries the same curve the arcs cut into the
+ * slats.
+ *
+ * An inset rectangle cannot: the page is lifted above the overlay so the arcs
+ * can bite everything except it, and a straight-edged panel sitting in a bowed
+ * row is exactly what gives it away. So the page draws the arc into its own
+ * clip instead.
+ *
+ * Coordinates are the element's own box, taken from its rect, so a page that is
+ * offset or taller than the viewport still lines up with the arcs.
+ */
+function clipAt(p: number, bow: number, el: HTMLElement, spanVw: number) {
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const r = el.getBoundingClientRect()
+  const y = (viewportY: number) => viewportY - r.top
+  const x = (viewportX: number) => viewportX - r.left
+
+  const left = ((100 - SLAT_W) / 2) * p * 0.01 * vw
+  const right = vw - left
+
+  // The arc elements: half the viewport tall, viewBox 100x60, edge at 30.
+  const arcH = vh * 0.5
+  const off = 1.1 * (1 - p) * arcH // how far they have retreated
+  const edgeT = -off + arcH * 0.5
+  const ctrlT = -off + arcH * ((30 + 2 * bow) / 60)
+  const edgeB = vh - arcH + off + arcH * 0.5
+  const ctrlB = vh - arcH + off + arcH * ((30 - 2 * bow) / 60)
+
+  /*
+   * The arcs span the window, not the screen, so the page's edges sit somewhere
+   * partway along the curve. Taking that sub-span of a quadratic keeps a
+   * quadratic; this is its control point, from the midpoint identity
+   * mid = (P0 + 2C + P2) / 4 on a symmetric span.
+   */
+  const winW = (100 - (100 - spanVw) * p) * 0.01 * vw
+  const u = Math.min(0.5, Math.max(0, (left - (vw - winW) / 2) / winW))
+  const bulge = 2 * u * (1 - u)
+  const atT = edgeT + bulge * (ctrlT - edgeT)
+  const atB = edgeB + bulge * (ctrlB - edgeB)
+  const cT = edgeT + ctrlT - atT
+  const cB = edgeB + ctrlB - atB
+  const cx = x(vw / 2)
+
+  return `path("M ${x(left)} ${y(atT)} Q ${cx} ${y(cT)} ${x(right)} ${y(atT)} L ${x(right)} ${y(atB)} Q ${cx} ${y(cB)} ${x(left)} ${y(atB)} Z")`
+}
 
 /**
  * Fades the page out over the last of its travel, where it is already a sliver
@@ -105,9 +150,6 @@ const slotTop = (bow: number) => ((30 + bow) / 60) * ARC_H
  * that is doing the easing's job twice.
  */
 const veil = (p: number) => 1 - p
-
-/** Height of the slot, once the arc has taken its bite out of both ends. */
-const slotH = (bow: number) => 100 - 2 * slotTop(bow)
 
 /**
  * Every moving part from one number. 0 is a full screen, 1 is a single bar in
@@ -148,7 +190,7 @@ function paint(
    * four edges as a white frame. Theirs leaves the page's transform at identity
    * and moves the clip alone.
    */
-  gsap.set(page, { clipPath: clipAt(p, o.bow), opacity: veil(p) })
+  page.forEach((el) => gsap.set(el, { clipPath: clipAt(p, o.bow, el, o.span), opacity: veil(p) }))
   gsap.set(lead, {
     scaleX: wideVw / SLAT_W,
     scaleY: (tall ? 100 : highVh) / slotH(o.bow),
@@ -306,7 +348,9 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
      * the wrong thing waiting for a layout that puts it in front.
      */
     const holdPage = () =>
-      gsap.set(pageOf(overlay), { ...LIFT, clipPath: clipAt(1, options.bow), opacity: 0 })
+      pageOf(overlay).forEach((el) =>
+        gsap.set(el, { ...LIFT, clipPath: clipAt(1, options.bow, el, options.span), opacity: 0 }),
+      )
 
     tl.to(q(overlay, '.cc-strip'), {
       x: `${slot * PITCH}vw`,
