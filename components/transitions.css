@@ -502,6 +502,22 @@
  * quadratic stays a quadratic under a non-uniform scale, so the arc survives any
  * viewport shape and `bow` alone decides how deep it goes.
  */
+/*
+ * The page's stand-in. One bar's width, scaled up to the whole screen at the
+ * start and down to a bar by the end — the wide-to-thin stage the row is named
+ * for. Scaled rather than resized so it costs a transform, not a layout.
+ */
+.cc-lead {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--cc-slat-w, 3vw);
+  margin: 0 0 0 calc(var(--cc-slat-w, 3vw) / -2);
+  transform-origin: 50% 50%;
+  translate: 0 -50%;
+  background: var(--cc-slat);
+}
+
 .cc-arc {
   position: absolute;
   left: 0;

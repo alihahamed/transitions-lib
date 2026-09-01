@@ -81,7 +81,6 @@ export default function RootLayout({ children }) {
       { name: 'shuffle', type: 'number', def: '4', description: 'How far the strip slides per slot, in viewport widths.' },
       { name: 'spread', type: 'number', def: '6', description: 'How many slots either side of centre a page can land on.' },
       { name: 'duration', type: 'number', def: '0.8', description: 'Seconds the page takes to shrink into the slot, and to open back out.' },
-      { name: 'recede', type: 'number', def: '0.06', description: 'How far the page is pushed back as it shrinks, 0 to 1.' },
       { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole timeline. Above 1 is faster.' },
       { name: 'palette', type: '"mono" | "inverse" | "ember" | "pine" | "custom"', def: '"mono"', description: 'Ground and slat colours. "custom" applies no preset, leaving your own CSS variables in charge.' },
     ],
@@ -92,7 +91,6 @@ export default function RootLayout({ children }) {
       { kind: 'range', key: 'span', label: 'Span', min: 20, max: 100, step: 2, def: 60 },
       { kind: 'range', key: 'spread', label: 'Spread', min: 0, max: 12, step: 1, def: 6 },
       { kind: 'range', key: 'duration', label: 'Duration', min: 0.3, max: 1.6, step: 0.05, def: 0.8 },
-      { kind: 'range', key: 'recede', label: 'Recede', min: 0, max: 0.3, step: 0.01, def: 0.06 },
       { kind: 'range', key: 'speed', label: 'Speed', min: 0.4, max: 2.5, step: 0.05, def: 1 },
     ],
     notes: [

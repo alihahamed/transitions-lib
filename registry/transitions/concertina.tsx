@@ -38,8 +38,6 @@ export type ConcertinaOptions = {
   duration: number
   /** Multiplies the whole timeline. Above 1 is faster. */
   speed: number
-  /** How far the page is pushed back as it shrinks, 0 to 1. */
-  recede: number
   /** Ground and slat colours. "custom" applies no preset. */
   palette: 'mono' | 'inverse' | 'ember' | 'pine' | 'custom'
 }
@@ -51,7 +49,6 @@ const DEFAULTS: ConcertinaOptions = {
   spread: 6,
   duration: 0.8,
   speed: 1,
-  recede: 0.06,
   palette: 'mono',
 }
 
@@ -97,6 +94,44 @@ const slotTop = (bow: number) => ((30 + bow) / 60) * ARC_H
  */
 const HANDOFF = 0.82
 const handoff = (p: number) => (p < HANDOFF ? 1 : 1 - (p - HANDOFF) / (1 - HANDOFF))
+
+/** Height of the slot, once the arc has taken its bite out of both ends. */
+const slotH = (bow: number) => 100 - 2 * slotTop(bow)
+
+/**
+ * Every moving part from one number. 0 is a full screen, 1 is a single bar in
+ * the row.
+ *
+ * The lead is the piece that was missing. It is the page's stand-in: a panel
+ * that starts the size of the whole screen and shrinks to a bar, tracking the
+ * page's own crop exactly so the page appears to *become* it. Without it the
+ * page just vanishes into a slot, and the wide-to-thin stage — which is most of
+ * what the effect reads as — never happens.
+ *
+ * The window narrows as the lead does, the way theirs takes .home-load__inner
+ * from 100vw to 60vw, so the row and its arcs are only revealed as the lead
+ * gets out of the way.
+ */
+function paint(
+  p: number,
+  o: { bow: number; span: number },
+  page: HTMLElement[],
+  lead: HTMLElement | null,
+  win: HTMLElement | null,
+) {
+  const wideVw = 100 - (100 - SLAT_W) * p
+  const highVh = 100 - 2 * slotTop(o.bow) * p
+
+  /*
+   * Cropped, never scaled. Scaling the page inside its own crop shrinks what it
+   * paints without shrinking the lead behind it, and the lead shows around all
+   * four edges as a white frame. Theirs leaves the page's transform at identity
+   * and moves the clip alone.
+   */
+  gsap.set(page, { clipPath: clipAt(p, o.bow), opacity: handoff(p) })
+  gsap.set(lead, { scaleX: wideVw / SLAT_W, scaleY: highVh / slotH(o.bow) })
+  gsap.set(win, { width: `${100 - (100 - o.span) * p}vw` })
+}
 
 /**
  * Which slot a path lands on. The same page always lands on the same slat, so
@@ -165,6 +200,8 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
             <div key={i} className="cc-slat" />
           ))}
         </div>
+        {/* Sits below the arcs so it gets the same bite the real slats do. */}
+        <div className="cc-lead" style={{ height: `${slotH(options.bow)}vh` }} />
         <svg className="cc-arc is-top" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden>
           <path d={arcTop(options.bow)} />
         </svg>
@@ -189,86 +226,78 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
   leave: ({ overlay, options, done }) => {
     const tl = gsap.timeline({ onComplete: done })
     const page = pageOf(overlay)
-    const d = options.duration
+    const lead = q<HTMLElement>(overlay, '.cc-lead')
+    const win = q<HTMLElement>(overlay, '.cc-window')
 
-    // Ground and slats come up behind the page, which still covers them whole.
+    // Ground and row come up behind a full-screen lead, which the page covers.
     gsap.set(overlay, { autoAlpha: 1 })
-    gsap.set(page, { ...LIFT, clipPath: clipAt(0, options.bow), scale: 1, opacity: 1 })
+    gsap.set(page, LIFT)
+    paint(0, options, page, lead, win)
 
-    // The page shrinks to one slat's footprint, revealing the row around it.
     const at = { p: 0 }
     tl.to(at, {
       p: 1,
-      duration: d,
+      duration: options.duration,
       ease: 'power4.inOut',
-      onUpdate: () =>
-        gsap.set(page, {
-          clipPath: clipAt(at.p, options.bow),
-          scale: 1 - options.recede * at.p,
-          // Handed over to the slat waiting underneath in the last stretch, so
-          // the row ends up all one colour. Left showing, the page's own
-          // background sits in the row as a dark gap instead of a bar.
-          opacity: handoff(at.p),
-        }),
+      onUpdate: () => paint(at.p, options, page, lead, win),
     })
-    tl.to(overlay.querySelectorAll('.cc-arc'), { yPercent: 0, duration: d, ease: 'power3.inOut' }, '<')
+    tl.to(overlay.querySelectorAll('.cc-arc'), { yPercent: 0, duration: options.duration, ease: 'power3.inOut' }, '<')
 
     tl.timeScale(options.speed)
     return () => tl.kill()
   },
 
   enter: ({ overlay, options, done }) => {
-    const tl = gsap.timeline({
-      onComplete: () => {
-        // Hand the page back exactly as it was found.
-        gsap.set(pageOf(overlay), { clearProps: 'clipPath,transform,position,zIndex,opacity' })
-        done()
-      },
-    })
     const page = pageOf(overlay)
-    const d = options.duration
-
-    // location is the destination by now, which is what makes the slot knowable
-    // at all — during leave this is still the page being left.
-    const slot = slotFor(location.pathname, options.spread)
+    const lead = q<HTMLElement>(overlay, '.cc-lead')
+    const win = q<HTMLElement>(overlay, '.cc-window')
 
     /*
      * Synchronously, not as a timeline step. The route has already swapped by
      * the time enter runs, so a fresh unclipped page is mounted and one frame of
      * it at full size is enough to read as a flash.
      */
-    gsap.set(page, { ...LIFT, clipPath: clipAt(1, options.bow), scale: 1 - options.recede, opacity: 0 })
+    gsap.set(page, LIFT)
+    paint(1, options, page, lead, win)
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        // Hand the page back exactly as it was found.
+        gsap.set(pageOf(overlay), { clearProps: 'clipPath,position,zIndex,opacity' })
+        done()
+      },
+    })
+
+    // location is the destination by now, which is what makes the slot knowable
+    // at all — during leave this is still the page being left.
+    const slot = slotFor(location.pathname, options.spread)
 
     tl.to(q(overlay, '.cc-strip'), {
       x: `${slot * PITCH}vw`,
-      duration: d * 0.9,
+      duration: options.duration * 0.9,
       ease: 'power2.inOut',
     })
 
+    // The bar the row landed on widens back out, and the page grows out of it.
     const at = { p: 1 }
     tl.to(
       at,
       {
         p: 0,
-        duration: d,
+        duration: options.duration,
         ease: 'power4.inOut',
-        onUpdate: () =>
-          gsap.set(page, {
-            clipPath: clipAt(at.p, options.bow),
-            scale: 1 - options.recede * at.p,
-            opacity: handoff(at.p),
-          }),
+        onUpdate: () => paint(at.p, options, page, lead, win),
       },
       '>-0.12',
     )
     tl.to(
       overlay.querySelectorAll('.cc-arc.is-top'),
-      { yPercent: -110, duration: d, ease: 'power3.inOut' },
+      { yPercent: -110, duration: options.duration, ease: 'power3.inOut' },
       '<',
     )
     tl.to(
       overlay.querySelectorAll('.cc-arc.is-bottom'),
-      { yPercent: 110, duration: d, ease: 'power3.inOut' },
+      { yPercent: 110, duration: options.duration, ease: 'power3.inOut' },
       '<',
     )
     tl.set(overlay, { autoAlpha: 0 })
