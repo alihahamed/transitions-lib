@@ -129,6 +129,15 @@ function paint(
   page: HTMLElement[],
   lead: HTMLElement | null,
   win: HTMLElement | null,
+  /*
+   * Whether the lead is already at full height. Coming back it is — the row
+   * grew to full height during the shuffle — so only its width moves and the
+   * arcs pulling back are what shape it. That is where the curved expansion
+   * comes from; scaling the lead vertically *and* retreating the arcs does the
+   * same job twice and flattens it into a plain rectangle growing from
+   * the middle.
+   */
+  tall = false,
 ) {
   const wideVw = 100 - (100 - SLAT_W) * p
   const highVh = 100 - 2 * slotTop(o.bow) * p
@@ -140,7 +149,10 @@ function paint(
    * and moves the clip alone.
    */
   gsap.set(page, { clipPath: clipAt(p, o.bow), opacity: veil(p) })
-  gsap.set(lead, { scaleX: wideVw / SLAT_W, scaleY: highVh / slotH(o.bow) })
+  gsap.set(lead, {
+    scaleX: wideVw / SLAT_W,
+    scaleY: (tall ? 100 : highVh) / slotH(o.bow),
+  })
   gsap.set(win, { width: `${100 - (100 - o.span) * p}vw` })
 }
 
@@ -273,8 +285,10 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
 
     const tl = gsap.timeline({
       onComplete: () => {
-        // Hand the page back exactly as it was found.
+        // Hand the page back exactly as it was found, and park the row at band
+        // height so the next navigation starts where this one began.
         gsap.set(pageOf(overlay), { clearProps: 'clipPath,position,zIndex,opacity' })
+        gsap.set(overlay.querySelectorAll('.cc-slat'), { scaleY: 1 })
         done()
       },
     })
@@ -283,11 +297,36 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     // at all — during leave this is still the page being left.
     const slot = slotFor(location.pathname, options.spread)
 
+    /*
+     * Re-applied every frame of the shuffle against a fresh query. enter() runs
+     * either side of React committing the new page, so the node styled
+     * synchronously above is sometimes the one being replaced — the incoming
+     * one then renders unclipped and fully opaque for a frame. It sits behind
+     * the overlay while it is static, so nothing shows, but it is a frame of
+     * the wrong thing waiting for a layout that puts it in front.
+     */
+    const holdPage = () =>
+      gsap.set(pageOf(overlay), { ...LIFT, clipPath: clipAt(1, options.bow), opacity: 0 })
+
     tl.to(q(overlay, '.cc-strip'), {
       x: `${slot * PITCH}vw`,
       duration: options.duration * 0.9,
       ease: 'power2.inOut',
+      onUpdate: holdPage,
     })
+
+    // The band becomes full-height columns as it slides, which is what leaves
+    // the arcs alone to shape the expansion that follows.
+    tl.to(
+      overlay.querySelectorAll('.cc-slat'),
+      { scaleY: 100 / SLAT_H, duration: options.duration * 0.9, ease: 'power2.inOut' },
+      '<',
+    )
+    tl.to(
+      lead,
+      { scaleY: 100 / slotH(options.bow), duration: options.duration * 0.9, ease: 'power2.inOut' },
+      '<',
+    )
 
     // The bar the row landed on widens back out, and the page grows out of it.
     const at = { p: 1 }
@@ -297,7 +336,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
         p: 0,
         duration: options.duration,
         ease: 'power4.inOut',
-        onUpdate: () => paint(at.p, options, page, lead, win),
+        onUpdate: () => paint(at.p, options, pageOf(overlay), lead, win, true),
       },
       '>-0.12',
     )
