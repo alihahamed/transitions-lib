@@ -52,11 +52,11 @@ export const transitions: TransitionMeta[] = [
     name: 'Concertina',
     tagline: 'The screen folds into a strip of slats, slides to the page\u2019s slot, and opens back out.',
     description:
-      'The screen folds down into a row of slats, the strip slides sideways to the slot belonging to the page you are going to, and that slot opens back out. The slot is derived from the path, so a given page always lands on the same slat and the site keeps the feel of a strip you slide along. The bow along the top and bottom is painted rather than computed \u2014 two arcs in the ground colour lie over a row of perfectly flat slats and bite into it, which is what makes the outer slats read as taller than the middle ones.',
+      'The page shrinks into one slot of a row of slats, the row slides along to the slot belonging to the page you are going to, and the new page opens back out of it. The page really is the middle slat \u2014 it is clipped down to that slot rather than being covered by anything, so the row stays a band with ground above and below it. The slot is derived from the path, so a given page always lands on the same slat and the site keeps the feel of a strip you slide along. The bow along the top and bottom is painted rather than computed: two arcs in the ground colour lie over a row of perfectly flat slats and bite into it, which is what makes the outer slats read as taller than the middle ones.',
     engine: 'GSAP',
     dependencies: ['gsap', 'next-transition-router'],
     accent: ['#0d0d0f', '#f6f4ef', '#7fd0b4'],
-    duration: 2000,
+    duration: 2300,
     usage: `import { ConcertinaTransition } from '@/components/concertina'
 
 export default function RootLayout({ children }) {
@@ -76,11 +76,12 @@ export default function RootLayout({ children }) {
     ],
     props: [
       { name: 'children', type: 'ReactNode', def: '\u2014', description: 'Your app. Wrap the contents of <body>. (Required)' },
-      { name: 'slats', type: 'number', def: '41', description: 'How many slats the strip is made of. Odd numbers give it a true middle. It has to be wide enough to still cover the screen once it has shuffled.' },
+      { name: 'slats', type: 'number', def: '41', description: 'How many slats the row is made of. It has to stay wider than the screen once shuffled.' },
       { name: 'bow', type: 'number', def: '14', description: 'Depth of the arc that bites into the top and bottom of the row. 0 leaves the row flat.' },
       { name: 'shuffle', type: 'number', def: '4', description: 'How far the strip slides per slot, in viewport widths.' },
       { name: 'spread', type: 'number', def: '6', description: 'How many slots either side of centre a page can land on.' },
-      { name: 'duration', type: 'number', def: '0.55', description: 'Seconds the strip takes to fold down, and to open back out.' },
+      { name: 'duration', type: 'number', def: '0.8', description: 'Seconds the page takes to shrink into the slot, and to open back out.' },
+      { name: 'recede', type: 'number', def: '0.06', description: 'How far the page is pushed back as it shrinks, 0 to 1.' },
       { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole timeline. Above 1 is faster.' },
       { name: 'palette', type: '"mono" | "inverse" | "ember" | "pine" | "custom"', def: '"mono"', description: 'Ground and slat colours. "custom" applies no preset, leaving your own CSS variables in charge.' },
     ],
@@ -90,12 +91,13 @@ export default function RootLayout({ children }) {
       { kind: 'range', key: 'bow', label: 'Bow', min: 0, max: 30, step: 1, def: 14 },
       { kind: 'range', key: 'shuffle', label: 'Shuffle', min: 0, max: 12, step: 0.5, def: 4 },
       { kind: 'range', key: 'spread', label: 'Spread', min: 0, max: 12, step: 1, def: 6 },
-      { kind: 'range', key: 'duration', label: 'Duration', min: 0.25, max: 1.4, step: 0.05, def: 0.55 },
+      { kind: 'range', key: 'duration', label: 'Duration', min: 0.3, max: 1.6, step: 0.05, def: 0.8 },
+      { kind: 'range', key: 'recede', label: 'Recede', min: 0, max: 0.3, step: 0.01, def: 0.06 },
       { kind: 'range', key: 'speed', label: 'Speed', min: 0.4, max: 2.5, step: 0.05, def: 1 },
     ],
     notes: [
       'The slot a page lands on comes from a hash of its path, so it is stable without you listing your routes anywhere.',
-      'Everything that moves is a transform \u2014 the slats are laid out collapsed and scaled up to cover, rather than having width and height animated on forty elements a frame.',
+      'The slats never resize. The page is clipped into one slot and back out, which is what keeps the row a band instead of turning the screen into stripes.',
       'Browser back and forward are not animated \u2014 history navigation snaps.',
     ],
     ready: false,
