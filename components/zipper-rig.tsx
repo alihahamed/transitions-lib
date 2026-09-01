@@ -1,6 +1,6 @@
 'use client'
 
-import { ZipperArt, Slider, ZIPPER_DIMS, DEFAULT_PITCH, DEFAULT_HEAD, SLIDER_INSET } from './zipper-art'
+import { ZipperArt, Slider, ZIPPER_DIMS, DEFAULT_PITCH, DEFAULT_HEAD, sliderYFor } from './zipper-art'
 
 export type RigTuning = {
   bands: number
@@ -95,7 +95,7 @@ export function ZipperRig({
 }) {
   const t = { ...DEFAULT_TUNING, ...tuning }
   const { W, H } = ZIPPER_DIMS
-  const sliderY = SLIDER_INSET + zip * (H - SLIDER_INSET * 2)
+  const sliderY = sliderYFor(zip)
 
   return (
     <div
@@ -106,15 +106,16 @@ export function ZipperRig({
       <Panel side="right" zip={zip} swing={swing} t={t} />
 
       {/* The slider belongs to neither panel once they hinge apart, so it rides
-          in its own layer, and rides up out through the top as the panels
+          in its own layer, and rides out through the bottom as the panels
           leave rather than dissolving in place — a slider that fades reads as a
-          bug, not as leaving. Reuses the #metal gradient the panels already
-          registered in the document. */}
+          bug, not as leaving. It leaves the way it came: the zip opens
+          downward, so by then the slider is parked at the bottom. Reuses the
+          #metal gradient the panels already registered in the document. */}
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid slice"
         className="zip-slider-layer"
-        style={{ transform: `translateY(${-swing * 42}%)` }}
+        style={{ transform: `translateY(${swing * 42}%)` }}
       >
         <Slider y={sliderY} />
       </svg>

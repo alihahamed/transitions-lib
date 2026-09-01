@@ -191,9 +191,9 @@ export default function RootLayout({ children }) {
   {
     slug: 'zipper',
     name: 'Zipper',
-    tagline: 'A zip runs down the screen, seals the page, then falls open sideways.',
+    tagline: 'A zip runs up the screen, seals the page, then falls open sideways.',
     description:
-      'The panels travel in and meet, then a slider runs down the seam — catching twice before it runs, the way a real zip does. The route swaps behind the sealed screen. Coming back, it unzips in one smooth pull and the two halves fall outward with a tilt.',
+      'The panels travel in and meet, then a slider runs up the seam from the bottom — catching twice before it runs, the way a real zip does. It closes upward and opens downward because that is the way a jacket works, so the chain is meshed below the slider and still parted above it. The route swaps behind the sealed screen. Coming back, it unzips in one smooth pull and the two halves fall outward with a tilt.',
     engine: 'GSAP',
     dependencies: ['gsap', 'next-transition-router'],
     accent: ['#d7d2c8', '#8f887c', '#3d3d46'],
@@ -221,7 +221,7 @@ export default function RootLayout({ children }) {
       { name: 'palette', type: '"nickel" | "steel" | "brass" | "gunmetal" | "copper" | "custom"', def: '"nickel"', description: 'Metal and tape colours. "custom" applies no preset class, leaving your own CSS variables in charge.' },
       { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole timeline. Above 1 is faster.' },
       { name: 'sealHold', type: 'number', def: '1', description: 'Seconds the screen stays sealed before unzipping. The route swaps during this beat.' },
-      { name: 'unzip', type: 'number', def: '1.85', description: 'Seconds the slider takes to run back up.' },
+      { name: 'unzip', type: 'number', def: '1.85', description: 'Seconds the slider takes to run back down.' },
       { name: 'pitch', type: 'number', def: '18', description: "Vertical spacing between teeth — the chain's density." },
       { name: 'head', type: 'number', def: '13', description: 'Tooth height. Overlap with its neighbour is head − pitch/2.' },
       { name: 'slide', type: 'number', def: '100', description: 'How far each panel travels outward, as a percentage of its own width.' },

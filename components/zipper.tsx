@@ -14,7 +14,7 @@ export type ZipperOptions = {
   speed: number
   /** Seconds the screen stays sealed before unzipping. The route swaps here. */
   sealHold: number
-  /** Seconds the slider takes to run back up. */
+  /** Seconds the slider takes to run back down. */
   unzip: number
   /** Vertical spacing between teeth — the chain's density. */
   pitch: number

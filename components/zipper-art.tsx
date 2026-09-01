@@ -4,7 +4,9 @@
  * No geometry, only shading: a specular band along each tooth's top edge, a
  * contact shadow beneath, and a slider with a lit top face.
  *
- * progress: 0 = fully open, 1 = fully closed.
+ * progress: 0 = fully open, 1 = fully closed. A zip closes upward — the slider
+ * parks at the bottom and seals toward the top, the way a jacket does — so the
+ * chain is meshed below it and still parted above.
  */
 
 /**
@@ -33,17 +35,27 @@ const GAP = 60 // how far each tape sits from centre once fully parted
 const TAPER = 150 // distance below the slider over which the rows fan apart
 
 export const SLIDER_INSET = 40 // how far the parked slider sits from each edge
+
+/**
+ * Where the slider sits for a given progress. Exported because the rig draws
+ * its own slider layer above the hinged panels — with the formula written out
+ * twice the two could drift apart, and reversing the travel direction is
+ * exactly the kind of change that would do it.
+ */
+export const sliderYFor = (progress: number) =>
+  H - SLIDER_INSET - progress * (H - SLIDER_INSET * 2)
 const SLIDER_W = 52
 const SLIDER_H = 72
 
 /**
- * How far apart the rows are at a given y. Zero above the slider, then eased
- * out to full over TAPER — the rows funnel out of the slider's mouth rather
- * than jumping to their final width.
+ * How far apart the rows are at a given y. Zero below the slider, where the
+ * chain is already meshed, then eased out to full over TAPER going up — the
+ * rows funnel out of the slider's mouth rather than jumping to their final
+ * width.
  */
 const parting = (y: number, sliderY: number) => {
-  if (y <= sliderY) return 0
-  const t = Math.min(1, (y - sliderY) / TAPER)
+  if (y >= sliderY) return 0
+  const t = Math.min(1, (sliderY - y) / TAPER)
   return 1 - (1 - t) * (1 - t) // easeOutQuad
 }
 
@@ -104,7 +116,7 @@ export function ZipperArt({
   // Continuous across the whole range on purpose. Special-casing the ends made
   // the slider jump ~34 units the instant progress hit exactly 0 or 1, which
   // read as the travel stuttering backwards and repeating itself.
-  const sliderY = SLIDER_INSET + progress * (H - SLIDER_INSET * 2)
+  const sliderY = sliderYFor(progress)
 
   // Tape inner edges follow the same taper the teeth do, so fabric and metal
   // fan out together instead of the tape stepping open in one jump.
@@ -209,9 +221,10 @@ export function ZipperArt({
 }
 
 /**
- * Narrow end up — the single meshed chain leaves there. Wide mouth down, where
- * the two rows feed in. Getting this backwards is what made the parted teeth
- * look detached from the slider.
+ * Wide mouth up, narrow end down — the two rows feed in from the parted side
+ * above and the single meshed chain leaves below. This has to follow the travel
+ * direction: a slider pointing the wrong way makes the parted teeth look
+ * detached from it.
  */
 export function Slider({ y }: { y: number }) {
   const w = SLIDER_W
@@ -219,24 +232,24 @@ export function Slider({ y }: { y: number }) {
   const neck = 17
   return (
     <g transform={`translate(${CX} ${y})`}>
-      <ellipse cx={0} cy={h / 2 - 6} rx={w / 2 + 8} ry={12} fill="url(#castSoft)" />
+      <ellipse cx={0} cy={h / 2 - 16} rx={w / 2 + 8} ry={13} fill="url(#castSoft)" />
       <path
-        d={`M ${-neck / 2} ${-h / 2}
-            L ${neck / 2} ${-h / 2}
-            L ${neck / 2 + 3} ${-h / 2 + 16}
-            L ${w / 2} ${h / 2 - 10}
-            Q ${w / 2} ${h / 2} ${w / 2 - 10} ${h / 2}
-            L ${-w / 2 + 10} ${h / 2}
-            Q ${-w / 2} ${h / 2} ${-w / 2} ${h / 2 - 10}
-            L ${-neck / 2 - 3} ${-h / 2 + 16} Z`}
+        d={`M ${-neck / 2} ${h / 2}
+            L ${neck / 2} ${h / 2}
+            L ${neck / 2 + 3} ${h / 2 - 16}
+            L ${w / 2} ${-h / 2 + 10}
+            Q ${w / 2} ${-h / 2} ${w / 2 - 10} ${-h / 2}
+            L ${-w / 2 + 10} ${-h / 2}
+            Q ${-w / 2} ${-h / 2} ${-w / 2} ${-h / 2 + 10}
+            L ${-neck / 2 - 3} ${h / 2 - 16} Z`}
         fill="url(#metal)"
       />
-      {/* lit top face, faded rather than a flat white plate */}
+      {/* lit face on top — now the wide mouth, so it runs the full width */}
       <path
-        d={`M ${-neck / 2 + 1.5} ${-h / 2 + 2} L ${neck / 2 - 1.5} ${-h / 2 + 2} L ${neck / 2 + 1} ${-h / 2 + 10} L ${-neck / 2 - 1} ${-h / 2 + 10} Z`}
+        d={`M ${-w / 2 + 10} ${-h / 2 + 2} L ${w / 2 - 10} ${-h / 2 + 2} L ${w / 2 - 13} ${-h / 2 + 10} L ${-w / 2 + 13} ${-h / 2 + 10} Z`}
         fill="url(#spec)"
       />
-      {/* pull tab, hanging off the wide end */}
+      {/* pull tab still hangs off the bottom — gravity does not flip with the zip */}
       <rect x={-4} y={h / 2 - 12} width={8} height={16} rx={3} fill="url(#metal)" />
       <rect
         x={-13}
