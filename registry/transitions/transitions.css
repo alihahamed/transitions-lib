@@ -14,13 +14,19 @@
   pointer-events: none;
 }
 
-.transition-overlay svg {
+/* ---------- crayon ---------- */
+
+/*
+ * Scoped to crayon rather than every svg in an overlay. As `.transition-overlay
+ * svg` it outranked any single class a later transition could put on its own
+ * svg, so it silently forced them all to full size — the zipper only escaped
+ * because it sets its own width and height.
+ */
+.crayon svg {
   display: block;
   width: 100%;
   height: 100%;
 }
-
-/* ---------- crayon ---------- */
 
 :root {
   --crayon-1: #ff2d87;
@@ -430,4 +436,89 @@
   .vt-push::view-transition-new(root) {
     animation: none;
   }
+}
+
+/* ---------- concertina ---------- */
+
+/*
+ * The slats are laid out at their collapsed size and scaled up to cover, so
+ * nothing here animates width or height — a strip of forty slats re-laying out
+ * every frame is the one thing that would make this expensive.
+ */
+
+:root {
+  --cc-ground: #0d0d0f;
+  --cc-slat: #f6f4ef;
+}
+
+.cc-stage {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+}
+
+.cc-ground {
+  position: absolute;
+  inset: 0;
+  background: var(--cc-ground);
+}
+
+.cc-strip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cc-slat {
+  flex: 0 0 auto;
+  width: var(--cc-slat-w, 3vw);
+  height: var(--cc-slat-h, 45vh);
+  margin: 0 var(--cc-gap, 0.5vw);
+  background: var(--cc-slat);
+}
+
+/*
+ * The bow. Two arcs in the ground colour lying over a row of flat slats — the
+ * edge slats read as taller than the middle ones because each is bitten into by
+ * a different part of the curve. preserveAspectRatio is none on purpose: a
+ * quadratic stays a quadratic under a non-uniform scale, so the arc survives any
+ * viewport shape and `bow` alone decides how deep it goes.
+ */
+.cc-arc {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  display: block;
+  fill: var(--cc-ground);
+}
+
+.cc-arc.is-top {
+  top: 0;
+}
+
+.cc-arc.is-bottom {
+  bottom: 0;
+}
+
+.cc-mono {
+  --cc-ground: #0d0d0f;
+  --cc-slat: #f6f4ef;
+}
+
+.cc-inverse {
+  --cc-ground: #f2efe8;
+  --cc-slat: #17171a;
+}
+
+.cc-ember {
+  --cc-ground: #170a04;
+  --cc-slat: #ff9d3c;
+}
+
+.cc-pine {
+  --cc-ground: #0b1a16;
+  --cc-slat: #7fd0b4;
 }
