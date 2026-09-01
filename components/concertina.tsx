@@ -47,7 +47,7 @@ const DEFAULTS: ConcertinaOptions = {
   bow: 14,
   span: 60,
   spread: 6,
-  duration: 0.8,
+  duration: 0.85,
   speed: 1,
   palette: 'mono',
 }
@@ -150,6 +150,20 @@ function clipAt(p: number, bow: number, el: HTMLElement, spanVw: number) {
  * that is doing the easing's job twice.
  */
 const veil = (p: number) => 1 - p
+
+/*
+ * Two eases, not one. Fitted against their live transition: the shrink is
+ * power4.inOut but the expansion is power3.inOut, and their source agrees —
+ * separate timelines with separate defaults. Running power4 both ways makes the
+ * panel sit almost still and then whip open, which is what reads as flashing
+ * in rather than expanding. Over the same 847ms, power4 is only 0.11 open a
+ * third of the way through where theirs is 0.17, so it has to make the rest up
+ * in half the time.
+ */
+const EASE_CLOSE = 'power4.inOut'
+const EASE_OPEN = 'power3.inOut'
+/** Their arcs run a little past the panel rather than landing with it. */
+const ARC_LAG = 0.2
 
 /**
  * Every moving part from one number. 0 is a full screen, 1 is a single bar in
@@ -303,10 +317,14 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     tl.to(at, {
       p: 1,
       duration: options.duration,
-      ease: 'power4.inOut',
+      ease: EASE_CLOSE,
       onUpdate: () => paint(at.p, options, page, lead, win),
     })
-    tl.to(overlay.querySelectorAll('.cc-arc'), { yPercent: 0, duration: options.duration, ease: 'power3.inOut' }, '<')
+    tl.to(
+      overlay.querySelectorAll('.cc-arc'),
+      { yPercent: 0, duration: options.duration + ARC_LAG / 2, ease: EASE_CLOSE },
+      '<',
+    )
 
     tl.timeScale(options.speed)
     return () => tl.kill()
@@ -354,7 +372,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
 
     tl.to(q(overlay, '.cc-strip'), {
       x: `${slot * PITCH}vw`,
-      duration: options.duration * 0.9,
+      duration: options.duration / 1.25,
       ease: 'power2.inOut',
       onUpdate: holdPage,
     })
@@ -363,12 +381,12 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     // the arcs alone to shape the expansion that follows.
     tl.to(
       overlay.querySelectorAll('.cc-slat'),
-      { scaleY: 100 / SLAT_H, duration: options.duration * 0.9, ease: 'power2.inOut' },
+      { scaleY: 100 / SLAT_H, duration: options.duration / 1.25, ease: 'power2.inOut' },
       '<',
     )
     tl.to(
       lead,
-      { scaleY: 100 / slotH(options.bow), duration: options.duration * 0.9, ease: 'power2.inOut' },
+      { scaleY: 100 / slotH(options.bow), duration: options.duration / 1.25, ease: 'power2.inOut' },
       '<',
     )
 
@@ -379,19 +397,19 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
       {
         p: 0,
         duration: options.duration,
-        ease: 'power4.inOut',
+        ease: EASE_OPEN,
         onUpdate: () => paint(at.p, options, pageOf(overlay), lead, win, true),
       },
       '>-0.12',
     )
     tl.to(
       overlay.querySelectorAll('.cc-arc.is-top'),
-      { yPercent: -110, duration: options.duration, ease: 'power3.inOut' },
+      { yPercent: -110, duration: options.duration + ARC_LAG, ease: EASE_OPEN },
       '<',
     )
     tl.to(
       overlay.querySelectorAll('.cc-arc.is-bottom'),
-      { yPercent: 110, duration: options.duration, ease: 'power3.inOut' },
+      { yPercent: 110, duration: options.duration + ARC_LAG, ease: EASE_OPEN },
       '<',
     )
     tl.set(overlay, { autoAlpha: 0 })
