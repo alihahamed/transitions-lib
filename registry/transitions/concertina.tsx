@@ -92,8 +92,25 @@ const slotTop = (bow: number) => ((30 + bow) / 60) * ARC_H
  * three viewport-widths wide — small enough that the swap to the slat behind it
  * is not something you can catch.
  */
-const HANDOFF = 0.82
-const handoff = (p: number) => (p < HANDOFF ? 1 : 1 - (p - HANDOFF) / (1 - HANDOFF))
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
+/** Eased at both ends, so neither the hand-off nor the reveal has a corner. */
+const smooth = (t: number) => t * t * (3 - 2 * t)
+
+/**
+ * How solid the page is. The lead sits directly behind it and tracks its crop
+ * exactly, so fading the page is the same as veiling it in the bar's own white
+ * — the trick theirs does with a .main-overlay panel inside the page container.
+ *
+ * The two directions want different curves. Going out, the page stays itself
+ * for most of the shrink and only gives way to the bar at the end. Coming back,
+ * it is held off until the bar is most of the way open: a bar that is already a
+ * page a quarter of the way through leaves the expansion nothing to reveal,
+ * which is what made the return read as the page simply getting bigger.
+ */
+const HOLD_OUT = 0.7
+const HOLD_IN = 0.45
+const veilOut = (p: number) => 1 - smooth(clamp01((p - HOLD_OUT) / (1 - HOLD_OUT)))
+const veilIn = (p: number) => smooth(clamp01((HOLD_IN - p) / HOLD_IN))
 
 /** Height of the slot, once the arc has taken its bite out of both ends. */
 const slotH = (bow: number) => 100 - 2 * slotTop(bow)
@@ -118,6 +135,7 @@ function paint(
   page: HTMLElement[],
   lead: HTMLElement | null,
   win: HTMLElement | null,
+  veil: (p: number) => number,
 ) {
   const wideVw = 100 - (100 - SLAT_W) * p
   const highVh = 100 - 2 * slotTop(o.bow) * p
@@ -128,7 +146,7 @@ function paint(
    * four edges as a white frame. Theirs leaves the page's transform at identity
    * and moves the clip alone.
    */
-  gsap.set(page, { clipPath: clipAt(p, o.bow), opacity: handoff(p) })
+  gsap.set(page, { clipPath: clipAt(p, o.bow), opacity: veil(p) })
   gsap.set(lead, { scaleX: wideVw / SLAT_W, scaleY: highVh / slotH(o.bow) })
   gsap.set(win, { width: `${100 - (100 - o.span) * p}vw` })
 }
@@ -232,14 +250,14 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     // Ground and row come up behind a full-screen lead, which the page covers.
     gsap.set(overlay, { autoAlpha: 1 })
     gsap.set(page, LIFT)
-    paint(0, options, page, lead, win)
+    paint(0, options, page, lead, win, veilOut)
 
     const at = { p: 0 }
     tl.to(at, {
       p: 1,
       duration: options.duration,
       ease: 'power4.inOut',
-      onUpdate: () => paint(at.p, options, page, lead, win),
+      onUpdate: () => paint(at.p, options, page, lead, win, veilOut),
     })
     tl.to(overlay.querySelectorAll('.cc-arc'), { yPercent: 0, duration: options.duration, ease: 'power3.inOut' }, '<')
 
@@ -258,7 +276,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
      * it at full size is enough to read as a flash.
      */
     gsap.set(page, LIFT)
-    paint(1, options, page, lead, win)
+    paint(1, options, page, lead, win, veilIn)
 
     const tl = gsap.timeline({
       onComplete: () => {
@@ -286,7 +304,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
         p: 0,
         duration: options.duration,
         ease: 'power4.inOut',
-        onUpdate: () => paint(at.p, options, page, lead, win),
+        onUpdate: () => paint(at.p, options, page, lead, win, veilIn),
       },
       '>-0.12',
     )
