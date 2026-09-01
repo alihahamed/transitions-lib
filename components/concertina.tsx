@@ -30,8 +30,8 @@ export type ConcertinaOptions = {
   slats: number
   /** Depth of the arc that bites into the top and bottom of the row. 0 is a flat row. */
   bow: number
-  /** How far the row slides per slot, in viewport widths. */
-  shuffle: number
+  /** Width of the window the row lives in, in viewport widths. */
+  span: number
   /** How many slots either side of centre a page can land on. */
   spread: number
   /** Seconds the page takes to shrink into the slot, and to open back out. */
@@ -47,7 +47,7 @@ export type ConcertinaOptions = {
 const DEFAULTS: ConcertinaOptions = {
   slats: 41,
   bow: 14,
-  shuffle: 4,
+  span: 60,
   spread: 6,
   duration: 0.8,
   speed: 1,
@@ -59,6 +59,14 @@ const DEFAULTS: ConcertinaOptions = {
 const SLAT_W = 3
 const GAP = 0.5
 const SLAT_H = 45
+
+/*
+ * One slat plus its gaps. The row slides by exactly this per slot, so whichever
+ * slat lands at the centre lines up with the page's slot — a shuffle distance
+ * that is not a whole number of pitches leaves the page opening out of the gap
+ * between two slats.
+ */
+const PITCH = SLAT_W + GAP * 2
 
 /**
  * The page cropped toward one slat's footprint. 0 is the whole screen, 1 is a
@@ -81,6 +89,14 @@ const clipAt = (p: number, bow: number) =>
  */
 const ARC_H = 50
 const slotTop = (bow: number) => ((30 + bow) / 60) * ARC_H
+
+/**
+ * Fades the page out over the last of its travel, where it is already a sliver
+ * three viewport-widths wide — small enough that the swap to the slat behind it
+ * is not something you can catch.
+ */
+const HANDOFF = 0.82
+const handoff = (p: number) => (p < HANDOFF ? 1 : 1 - (p - HANDOFF) / (1 - HANDOFF))
 
 /**
  * Which slot a path lands on. The same page always lands on the same slat, so
@@ -133,21 +149,29 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
           '--cc-slat-w': `${SLAT_W}vw`,
           '--cc-gap': `${GAP}vw`,
           '--cc-slat-h': `${SLAT_H}vh`,
+          '--cc-window': `${options.span}vw`,
         } as React.CSSProperties
       }
     >
       <div className="cc-ground" />
-      <div className="cc-strip">
-        {Array.from({ length: options.slats }, (_, i) => (
-          <div key={i} className="cc-slat" />
-        ))}
+      {/*
+        The row lives in a window rather than running edge to edge, and the arcs
+        live in it too. Across a narrower span the same curve is far steeper at
+        its ends, which is what slants the outermost slats.
+      */}
+      <div className="cc-window">
+        <div className="cc-strip">
+          {Array.from({ length: options.slats }, (_, i) => (
+            <div key={i} className="cc-slat" />
+          ))}
+        </div>
+        <svg className="cc-arc is-top" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden>
+          <path d={arcTop(options.bow)} />
+        </svg>
+        <svg className="cc-arc is-bottom" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden>
+          <path d={arcBottom(options.bow)} />
+        </svg>
       </div>
-      <svg className="cc-arc is-top" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden>
-        <path d={arcTop(options.bow)} />
-      </svg>
-      <svg className="cc-arc is-bottom" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden>
-        <path d={arcBottom(options.bow)} />
-      </svg>
     </div>
   ),
 
@@ -156,7 +180,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     // those showed the overlay left the ground and slats permanently invisible.
     gsap.set(overlay, { autoAlpha: 0 })
     gsap.set(q(overlay, '.cc-strip'), {
-      x: `${slotFor(location.pathname, options.spread) * options.shuffle}vw`,
+      x: `${slotFor(location.pathname, options.spread) * PITCH}vw`,
     })
     gsap.set(overlay.querySelectorAll('.cc-arc.is-top'), { yPercent: -110 })
     gsap.set(overlay.querySelectorAll('.cc-arc.is-bottom'), { yPercent: 110 })
@@ -169,7 +193,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
 
     // Ground and slats come up behind the page, which still covers them whole.
     gsap.set(overlay, { autoAlpha: 1 })
-    gsap.set(page, { ...LIFT, clipPath: clipAt(0, options.bow), scale: 1 })
+    gsap.set(page, { ...LIFT, clipPath: clipAt(0, options.bow), scale: 1, opacity: 1 })
 
     // The page shrinks to one slat's footprint, revealing the row around it.
     const at = { p: 0 }
@@ -178,7 +202,14 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
       duration: d,
       ease: 'power4.inOut',
       onUpdate: () =>
-        gsap.set(page, { clipPath: clipAt(at.p, options.bow), scale: 1 - options.recede * at.p }),
+        gsap.set(page, {
+          clipPath: clipAt(at.p, options.bow),
+          scale: 1 - options.recede * at.p,
+          // Handed over to the slat waiting underneath in the last stretch, so
+          // the row ends up all one colour. Left showing, the page's own
+          // background sits in the row as a dark gap instead of a bar.
+          opacity: handoff(at.p),
+        }),
     })
     tl.to(overlay.querySelectorAll('.cc-arc'), { yPercent: 0, duration: d, ease: 'power3.inOut' }, '<')
 
@@ -190,7 +221,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     const tl = gsap.timeline({
       onComplete: () => {
         // Hand the page back exactly as it was found.
-        gsap.set(pageOf(overlay), { clearProps: 'clipPath,transform,position,zIndex' })
+        gsap.set(pageOf(overlay), { clearProps: 'clipPath,transform,position,zIndex,opacity' })
         done()
       },
     })
@@ -206,10 +237,10 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
      * the time enter runs, so a fresh unclipped page is mounted and one frame of
      * it at full size is enough to read as a flash.
      */
-    gsap.set(page, { ...LIFT, clipPath: clipAt(1, options.bow), scale: 1 - options.recede })
+    gsap.set(page, { ...LIFT, clipPath: clipAt(1, options.bow), scale: 1 - options.recede, opacity: 0 })
 
     tl.to(q(overlay, '.cc-strip'), {
-      x: `${slot * options.shuffle}vw`,
+      x: `${slot * PITCH}vw`,
       duration: d * 0.9,
       ease: 'power2.inOut',
     })
@@ -222,7 +253,11 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
         duration: d,
         ease: 'power4.inOut',
         onUpdate: () =>
-          gsap.set(page, { clipPath: clipAt(at.p, options.bow), scale: 1 - options.recede * at.p }),
+          gsap.set(page, {
+            clipPath: clipAt(at.p, options.bow),
+            scale: 1 - options.recede * at.p,
+            opacity: handoff(at.p),
+          }),
       },
       '>-0.12',
     )

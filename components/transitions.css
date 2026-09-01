@@ -463,6 +463,22 @@
   background: var(--cc-ground);
 }
 
+/*
+ * The row runs in a centred window rather than edge to edge. Two things follow
+ * from that: slats clip in and out at its sides as the row slides, and the arcs
+ * span the window too — the same curve across a narrower span is much steeper
+ * at its ends, which is what slants the outermost slats.
+ */
+.cc-window {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--cc-window, 60vw);
+  transform: translateX(-50%);
+  overflow: hidden;
+}
+
 .cc-strip {
   position: absolute;
   inset: 0;

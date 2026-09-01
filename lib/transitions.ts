@@ -89,7 +89,7 @@ export default function RootLayout({ children }) {
       { kind: 'select', key: 'palette', label: 'Palette', options: ['mono', 'inverse', 'ember', 'pine'], def: 'mono' },
       { kind: 'range', key: 'slats', label: 'Slats', min: 15, max: 61, step: 2, def: 41 },
       { kind: 'range', key: 'bow', label: 'Bow', min: 0, max: 30, step: 1, def: 14 },
-      { kind: 'range', key: 'shuffle', label: 'Shuffle', min: 0, max: 12, step: 0.5, def: 4 },
+      { kind: 'range', key: 'span', label: 'Span', min: 20, max: 100, step: 2, def: 60 },
       { kind: 'range', key: 'spread', label: 'Spread', min: 0, max: 12, step: 1, def: 6 },
       { kind: 'range', key: 'duration', label: 'Duration', min: 0.3, max: 1.6, step: 0.05, def: 0.8 },
       { kind: 'range', key: 'recede', label: 'Recede', min: 0, max: 0.3, step: 0.01, def: 0.06 },
@@ -97,6 +97,7 @@ export default function RootLayout({ children }) {
     ],
     notes: [
       'The slot a page lands on comes from a hash of its path, so it is stable without you listing your routes anywhere.',
+      'The row slides by exactly one slat pitch per slot, so whichever slat lands at the centre lines up with the page.',
       'The slats never resize. The page is clipped into one slot and back out, which is what keeps the row a band instead of turning the screen into stripes.',
       'Browser back and forward are not animated \u2014 history navigation snaps.',
     ],
