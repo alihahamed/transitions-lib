@@ -219,7 +219,15 @@ function paint(
    */
   gsap.set(lead, { scaleX: wideVw / SLAT_W, scaleY: 100 / slotH(o.bow) })
   gsap.set(win, { width: `${100 - (100 - o.span) * p}vw` })
-  gsap.set(arcs, { yPercent: arcAt(p, o.bow) })
+  /*
+   * Opposite signs. They retreat off opposite edges, so one value for both
+   * carries the bottom arc up into the middle of the screen — a second curve
+   * across the page, which is not a curve at all but the wrong arc.
+   */
+  const arcY = arcAt(p, o.bow)
+  arcs?.forEach((a) =>
+    gsap.set(a, { yPercent: a.classList.contains('is-bottom') ? -arcY : arcY }),
+  )
 
   /*
    * The slats are full height at the start and only settle to the band by the
@@ -318,7 +326,8 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     })
     // Parked where paint(0) would put them, so the first frame of a navigation
     // is continuous with the resting state rather than a jump.
-    gsap.set(overlay.querySelectorAll('.cc-arc'), { yPercent: arcAt(0, options.bow) })
+    gsap.set(overlay.querySelectorAll('.cc-arc.is-top'), { yPercent: arcAt(0, options.bow) })
+    gsap.set(overlay.querySelectorAll('.cc-arc.is-bottom'), { yPercent: -arcAt(0, options.bow) })
     gsap.set(overlay.querySelectorAll('.cc-slat'), { scaleY: 1 })
   },
 
