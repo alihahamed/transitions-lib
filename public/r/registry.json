@@ -4,6 +4,32 @@
   "homepage": "https://github.com/alihahamed/transitions-lib",
   "items": [
     {
+      "name": "dither",
+      "type": "registry:component",
+      "title": "Dither",
+      "description": "The page dissolves through an ordered Bayer dither \u2014 dots, checkerboard, weave, solid \u2014 and the next page is revealed the same way in reverse. Drawn on a canvas. GSAP.",
+      "dependencies": [
+        "gsap",
+        "next-transition-router"
+      ],
+      "files": [
+        {
+          "path": "registry/transitions/dither.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transition-core.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transitions.css",
+          "type": "registry:file",
+          "target": "@components/transitions.css"
+        }
+      ],
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { DitherTransition } from \"@/components/dither\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <DitherTransition>{children}</DitherTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nA grid of square cells fills the screen in Bayer order \u2014 a sparse lattice, then\nthe checkerboard, then the weave, then solid \u2014 and clears in reverse to reveal\nthe next page. Each cell pops; nothing fades. cells sets how many across\n(rows follow the aspect ratio), matrix picks the Bayer size: 4 is the classic\nconsole fade, 8 is smoother, 2 is four blunt stages.\n\nColour: four palettes ship as classes \u2014 palette=\"ink\" (default), \"paper\",\n\"blueprint\" or \"ember\". For anything else pass palette=\"custom\" and set\n--dither-ground yourself in components/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~0.5s)."
+    },
+    {
       "name": "concertina",
       "type": "registry:component",
       "title": "Concertina",
