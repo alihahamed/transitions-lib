@@ -165,6 +165,19 @@ function clipAt(p: number, bow: number, el: HTMLElement, spanVw: number) {
  */
 const veil = (p: number) => 1 - p
 
+/**
+ * Coming back, the page is not faded in over the bar — it is revealed by the
+ * bar growing. It goes solid over the first stretch of the expansion, while
+ * the bar is still a sliver a few viewport-widths wide, and from there the
+ * crop does all the work. A linear fade here reads as the page washing in
+ * through white rather than a bar opening onto it.
+ */
+const REVEAL = 0.15
+const reveal = (p: number) => {
+  const t = Math.min(1, Math.max(0, (1 - p) / REVEAL))
+  return t * t * (3 - 2 * t)
+}
+
 /*
  * Two eases, not one. Fitted against their live transition: the shrink is
  * power4.inOut but the expansion is power3.inOut, and their source agrees —
@@ -178,19 +191,20 @@ const EASE_CLOSE = 'power4.inOut'
 const EASE_OPEN = 'power3.inOut'
 
 /**
- * Every moving part from one number. 0 is a full screen, 1 is a single bar in
- * the row.
+ * Sizes the window to a whole, even number of pixels and centres it on whole
+ * pixels, so both of its edges land on the pixel grid.
  *
- * The lead is the piece that was missing. It is the page's stand-in: a panel
- * that starts the size of the whole screen and shrinks to a bar, tracking the
- * page's own crop exactly so the page appears to *become* it. Without it the
- * page just vanishes into a slot, and the wide-to-thin stage — which is most of
- * what the effect reads as — never happens.
- *
- * The window narrows as the lead does, the way theirs takes .home-load__inner
- * from 100vw to 60vw, so the row and its arcs are only revealed as the lead
- * gets out of the way.
+ * Sized in vw and centred with a -50% translate it sat at 365.602px on an
+ * 1828px viewport, and Chrome draws a hairline where an overflow: hidden edge
+ * falls between pixels with a composited child behind it. The slats are that
+ * child for the whole transition, so the hairline was white, full height, and
+ * grew as the row slid — the lines at the sides.
  */
+const sizeWindow = (win: HTMLElement | null, vw: number) => {
+  const w = 2 * Math.round((vw * 0.01 * window.innerWidth) / 2)
+  gsap.set(win, { width: w, left: Math.round((window.innerWidth - w) / 2) })
+}
+
 /**
  * Which slat is currently at the centre of the screen. The row is centred, so
  * the middle one sits there when it has not travelled; every pitch it moves
@@ -248,6 +262,8 @@ function paint(
    * shape the expansion.
    */
   tall = false,
+  /** How solid the page is at p. The two directions want different curves. */
+  solid: (p: number) => number = veil,
 ) {
   const wideVw = 100 - (100 - SLAT_W) * p
   /*
@@ -259,9 +275,9 @@ function paint(
   const rowVh = tall ? 100 : 100 - (100 - SLAT_H) * p
 
   page.forEach((el) =>
-    gsap.set(el, { clipPath: clipAt(p, o.bow, el, o.span), opacity: veil(p) }),
+    gsap.set(el, { clipPath: clipAt(p, o.bow, el, o.span), opacity: solid(p) }),
   )
-  gsap.set(win, { width: `${100 - (100 - o.span) * p}vw` })
+  sizeWindow(win, 100 - (100 - o.span) * p)
 
   /*
    * Opposite signs. They retreat off opposite edges, so one value for both
@@ -372,6 +388,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     gsap.set(overlay.querySelectorAll('.cc-arc.is-top'), { yPercent: arcAt(0, options.bow) })
     gsap.set(overlay.querySelectorAll('.cc-arc.is-bottom'), { yPercent: -arcAt(0, options.bow) })
     gsap.set(overlay.querySelectorAll('.cc-slat'), { scaleY: 1, zIndex: 0, clearProps: 'width' })
+    sizeWindow(q<HTMLElement>(overlay, '.cc-window'), options.span)
   },
 
   leave: ({ overlay, options, done }) => {
@@ -478,7 +495,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
       p: 0,
       duration: options.duration,
       ease: EASE_OPEN,
-      onUpdate: () => paint(at.p, options, pageOf(overlay), win, arcs, slats, arriving, true),
+      onUpdate: () => paint(at.p, options, pageOf(overlay), win, arcs, slats, arriving, true, reveal),
     })
     tl.set(overlay, { autoAlpha: 0 })
 

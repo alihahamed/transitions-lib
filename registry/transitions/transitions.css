@@ -473,9 +473,9 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 50%;
+  /* left and width are set in whole pixels from the component — see sizeWindow. */
+  left: 0;
   width: var(--cc-window, 60vw);
-  transform: translateX(-50%);
   overflow: hidden;
 }
 
