@@ -386,31 +386,57 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     const slot = slotFor(location.pathname, options.spread)
 
     /*
-     * Re-applied every frame of the shuffle against a fresh query. enter() runs
-     * either side of React committing the new page, so the node styled
-     * synchronously above is sometimes the one being replaced — the incoming
-     * one then renders unclipped and fully opaque for a frame.
+     * Only the page, and against a fresh query. enter() runs either side of
+     * React committing the new page, so the node styled synchronously above is
+     * sometimes the one being replaced — the incoming one then renders
+     * unclipped and fully opaque for a frame. Nothing else needs repainting
+     * while the row slides, and repainting the row here would fight the travel
+     * below.
      */
     const holdPage = () => {
       const live = pageOf(overlay)
       gsap.set(live, LIFT)
-      paint(1, options, live, lead, win, arcs, slats)
+      live.forEach((el) =>
+        gsap.set(el, { clipPath: clipAt(1, options.bow, el, options.span), opacity: veil(1) }),
+      )
     }
 
-    tl.to(q(overlay, '.cc-strip'), {
-      x: `${slot * PITCH}vw`,
-      duration: options.duration / 1.25,
+    const strip = q<HTMLElement>(overlay, '.cc-strip')
+    const shuffle = options.duration / 1.25
+
+    /*
+     * The bar the page collapsed into is one of the row's, so it travels with
+     * the row. Pinned at the centre it sat still while everything slid past it,
+     * which reads as the row moving around a bar rather than the row moving.
+     *
+     * Both are driven off one tweened number rather than two tweens with the
+     * same duration and ease — those still slipped 22px apart, and a bar
+     * dragging behind its own row is exactly the thing being fixed.
+     *
+     * The lead is reset to the centre before the expansion. Nothing shows: the
+     * row travels a whole number of pitches, so another slat is at the centre
+     * by then, exactly where the lead lands and the same colour.
+     */
+    const from = gsap.getProperty(strip, 'x') as number
+    const to = slot * PITCH * 0.01 * window.innerWidth
+    const ride = { x: from }
+
+    tl.to(ride, {
+      x: to,
+      duration: shuffle,
       ease: 'power2.inOut',
-      onUpdate: holdPage,
+      onUpdate: () => {
+        gsap.set(strip, { x: ride.x })
+        gsap.set(lead, { x: ride.x - from })
+        holdPage()
+      },
     })
 
     // The band becomes full-height columns as it slides, which is what leaves
     // the arcs alone to shape the expansion that follows.
-    tl.to(
-      slats,
-      { scaleY: 100 / SLAT_H, duration: options.duration / 1.25, ease: 'power2.inOut' },
-      '<',
-    )
+    tl.to(slats, { scaleY: 100 / SLAT_H, duration: shuffle, ease: 'power2.inOut' }, '<')
+
+    tl.set(lead, { x: 0 })
 
     // The bar the row landed on widens back out, and the page grows out of it.
     const at = { p: 1 }
