@@ -97,7 +97,7 @@ export default function RootLayout({ children }) {
       'Drawn on a canvas from one number. Nothing is in the DOM per cell, so cells across is free to go high.',
       'Browser back and forward are not animated \u2014 history navigation snaps.',
     ],
-    ready: false,
+    ready: true,
   },
   {
     slug: 'concertina',
