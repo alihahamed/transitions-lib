@@ -85,16 +85,34 @@ const slotTop = (bow: number) => ((30 + bow) / 60) * ARC_H
 const slotH = (bow: number) => 100 - 2 * slotTop(bow)
 
 /**
- * The page's crop, as a path that carries the same curve the arcs cut into the
+ * How deep the arcs bite, at the centre of the row, in vh. This one number is
+ * the law: the arcs are positioned to it, the slats and the lead are cut to it,
+ * and the page's crop is anchored to it. Everything used to derive its own
+ * version of "where the arc is" and they drifted apart.
+ */
+const bite = (p: number, bow: number) => slotTop(bow) * p
+
+/**
+ * Centre-to-end depth of the arc's dip, in vh. Constant, because the arcs
+ * translate rigidly — only where they sit changes, never their shape.
+ */
+const arcSag = (bow: number) => (bow * ARC_H) / 60
+
+/** yPercent that puts the arc's curve at `bite` deep. Element is ARC_H tall. */
+const arcAt = (p: number, bow: number) => (2 * slotTop(bow) * (p - 1) * 50) / ARC_H
+
+/**
+ * The page's crop, as a path carrying the same curve the arcs cut into the
  * slats.
  *
  * An inset rectangle cannot: the page is lifted above the overlay so the arcs
- * can bite everything except it, and a straight-edged panel sitting in a bowed
- * row is exactly what gives it away. So the page draws the arc into its own
- * clip instead.
+ * bite everything except it, and a straight-edged panel in a bowed row is
+ * exactly what gives it away.
  *
- * Coordinates are the element's own box, taken from its rect, so a page that is
- * offset or taller than the viewport still lines up with the arcs.
+ * Anchored to `bite` rather than to the arcs' measured position, so it lands on
+ * the lead's own top and bottom by construction. Deriving it from the arc's
+ * absolute offset instead let the two disagree by 182px at a third of the way
+ * in — the page overhanging the white bar it is supposed to be turning into.
  */
 function clipAt(p: number, bow: number, el: HTMLElement, spanVw: number) {
   const vw = window.innerWidth
@@ -106,30 +124,26 @@ function clipAt(p: number, bow: number, el: HTMLElement, spanVw: number) {
   const left = ((100 - SLAT_W) / 2) * p * 0.01 * vw
   const right = vw - left
 
-  // The arc elements: half the viewport tall, viewBox 100x60, edge at 30.
-  const arcH = vh * 0.5
-  const off = 1.1 * (1 - p) * arcH // how far they have retreated
-  const edgeT = -off + arcH * 0.5
-  const ctrlT = -off + arcH * ((30 + 2 * bow) / 60)
-  const edgeB = vh - arcH + off + arcH * 0.5
-  const ctrlB = vh - arcH + off + arcH * ((30 - 2 * bow) / 60)
-
   /*
-   * The arcs span the window, not the screen, so the page's edges sit somewhere
-   * partway along the curve. Taking that sub-span of a quadratic keeps a
-   * quadratic; this is its control point, from the midpoint identity
-   * mid = (P0 + 2C + P2) / 4 on a symmetric span.
+   * The arcs span the window, not the screen, so the page's edges sit partway
+   * along the dip and are cut less deeply than its centre. For a parabola that
+   * falls off with the square of the distance from the middle.
    */
   const winW = (100 - (100 - spanVw) * p) * 0.01 * vw
-  const u = Math.min(0.5, Math.max(0, (left - (vw - winW) / 2) / winW))
-  const bulge = 2 * u * (1 - u)
-  const atT = edgeT + bulge * (ctrlT - edgeT)
-  const atB = edgeB + bulge * (ctrlB - edgeB)
-  const cT = edgeT + ctrlT - atT
-  const cB = edgeB + ctrlB - atB
+  const u = Math.min(1, (right - left) / winW)
+  const centre = bite(p, bow)
+  const edge = centre - arcSag(bow) * u * u
+
+  // Control point placed so the curve's own midpoint lands exactly on `centre`,
+  // from mid = (P0 + 2C + P2) / 4 on a symmetric span.
+  const ctrl = 2 * centre - edge
+  const yT = edge * 0.01 * vh
+  const cT = ctrl * 0.01 * vh
+  const yB = vh - yT
+  const cB = vh - cT
   const cx = x(vw / 2)
 
-  return `path("M ${x(left)} ${y(atT)} Q ${cx} ${y(cT)} ${x(right)} ${y(atT)} L ${x(right)} ${y(atB)} Q ${cx} ${y(cB)} ${x(left)} ${y(atB)} Z")`
+  return `path("M ${x(left)} ${y(yT)} Q ${cx} ${y(cT)} ${x(right)} ${y(yT)} L ${x(right)} ${y(yB)} Q ${cx} ${y(cB)} ${x(left)} ${y(yB)} Z")`
 }
 
 /**
@@ -162,8 +176,6 @@ const veil = (p: number) => 1 - p
  */
 const EASE_CLOSE = 'power4.inOut'
 const EASE_OPEN = 'power3.inOut'
-/** Their arcs run a little past the panel rather than landing with it. */
-const ARC_LAG = 0.2
 
 /**
  * Every moving part from one number. 0 is a full screen, 1 is a single bar in
@@ -185,31 +197,37 @@ function paint(
   page: HTMLElement[],
   lead: HTMLElement | null,
   win: HTMLElement | null,
+  arcs: NodeListOf<Element> | null,
+  slats: NodeListOf<Element> | null,
   /*
-   * Whether the lead is already at full height. Coming back it is — the row
-   * grew to full height during the shuffle — so only its width moves and the
-   * arcs pulling back are what shape it. That is where the curved expansion
-   * comes from; scaling the lead vertically *and* retreating the arcs does the
-   * same job twice and flattens it into a plain rectangle growing from
-   * the middle.
+   * Whether the row is already at full height. Coming back it is — it grew
+   * during the shuffle — so only width moves and the arcs pulling back are what
+   * shape the expansion.
    */
   tall = false,
 ) {
   const wideVw = 100 - (100 - SLAT_W) * p
-  const highVh = 100 - 2 * slotTop(o.bow) * p
+
+  page.forEach((el) =>
+    gsap.set(el, { clipPath: clipAt(p, o.bow, el, o.span), opacity: veil(p) }),
+  )
+  /*
+   * Always full height, and left to the arcs to trim. The lead lives under them,
+   * so they cut it to exactly the curve the page is clipped to — sizing it to
+   * the slot instead left it a rectangle under a bowed page, and the slats
+   * behind showed through the page's corners where it had nothing to back it.
+   */
+  gsap.set(lead, { scaleX: wideVw / SLAT_W, scaleY: 100 / slotH(o.bow) })
+  gsap.set(win, { width: `${100 - (100 - o.span) * p}vw` })
+  gsap.set(arcs, { yPercent: arcAt(p, o.bow) })
 
   /*
-   * Cropped, never scaled. Scaling the page inside its own crop shrinks what it
-   * paints without shrinking the lead behind it, and the lead shows around all
-   * four edges as a white frame. Theirs leaves the page's transform at identity
-   * and moves the clip alone.
+   * The slats are full height at the start and only settle to the band by the
+   * end, the way theirs run height 100vh to 45vh. Left at 45vh throughout, the
+   * arcs do not reach them until p = 0.75 — so for three quarters of the shrink
+   * the row was flat-topped rectangles instead of a bow.
    */
-  page.forEach((el) => gsap.set(el, { clipPath: clipAt(p, o.bow, el, o.span), opacity: veil(p) }))
-  gsap.set(lead, {
-    scaleX: wideVw / SLAT_W,
-    scaleY: (tall ? 100 : highVh) / slotH(o.bow),
-  })
-  gsap.set(win, { width: `${100 - (100 - o.span) * p}vw` })
+  gsap.set(slats, { scaleY: (tall ? 100 : 100 - (100 - SLAT_H) * p) / SLAT_H })
 }
 
 /**
@@ -298,8 +316,10 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     gsap.set(q(overlay, '.cc-strip'), {
       x: `${slotFor(location.pathname, options.spread) * PITCH}vw`,
     })
-    gsap.set(overlay.querySelectorAll('.cc-arc.is-top'), { yPercent: -110 })
-    gsap.set(overlay.querySelectorAll('.cc-arc.is-bottom'), { yPercent: 110 })
+    // Parked where paint(0) would put them, so the first frame of a navigation
+    // is continuous with the resting state rather than a jump.
+    gsap.set(overlay.querySelectorAll('.cc-arc'), { yPercent: arcAt(0, options.bow) })
+    gsap.set(overlay.querySelectorAll('.cc-slat'), { scaleY: 1 })
   },
 
   leave: ({ overlay, options, done }) => {
@@ -307,24 +327,21 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     const page = pageOf(overlay)
     const lead = q<HTMLElement>(overlay, '.cc-lead')
     const win = q<HTMLElement>(overlay, '.cc-window')
+    const arcs = overlay.querySelectorAll('.cc-arc')
+    const slats = overlay.querySelectorAll('.cc-slat')
 
     // Ground and row come up behind a full-screen lead, which the page covers.
     gsap.set(overlay, { autoAlpha: 1 })
     gsap.set(page, LIFT)
-    paint(0, options, page, lead, win)
+    paint(0, options, page, lead, win, arcs, slats)
 
     const at = { p: 0 }
     tl.to(at, {
       p: 1,
       duration: options.duration,
       ease: EASE_CLOSE,
-      onUpdate: () => paint(at.p, options, page, lead, win),
+      onUpdate: () => paint(at.p, options, page, lead, win, arcs, slats),
     })
-    tl.to(
-      overlay.querySelectorAll('.cc-arc'),
-      { yPercent: 0, duration: options.duration + ARC_LAG / 2, ease: EASE_CLOSE },
-      '<',
-    )
 
     tl.timeScale(options.speed)
     return () => tl.kill()
@@ -334,6 +351,8 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     const page = pageOf(overlay)
     const lead = q<HTMLElement>(overlay, '.cc-lead')
     const win = q<HTMLElement>(overlay, '.cc-window')
+    const arcs = overlay.querySelectorAll('.cc-arc')
+    const slats = overlay.querySelectorAll('.cc-slat')
 
     /*
      * Synchronously, not as a timeline step. The route has already swapped by
@@ -341,14 +360,14 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
      * it at full size is enough to read as a flash.
      */
     gsap.set(page, LIFT)
-    paint(1, options, page, lead, win)
+    paint(1, options, page, lead, win, arcs, slats)
 
     const tl = gsap.timeline({
       onComplete: () => {
         // Hand the page back exactly as it was found, and park the row at band
         // height so the next navigation starts where this one began.
         gsap.set(pageOf(overlay), { clearProps: 'clipPath,position,zIndex,opacity' })
-        gsap.set(overlay.querySelectorAll('.cc-slat'), { scaleY: 1 })
+        gsap.set(slats, { scaleY: 1 })
         done()
       },
     })
@@ -361,14 +380,13 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
      * Re-applied every frame of the shuffle against a fresh query. enter() runs
      * either side of React committing the new page, so the node styled
      * synchronously above is sometimes the one being replaced — the incoming
-     * one then renders unclipped and fully opaque for a frame. It sits behind
-     * the overlay while it is static, so nothing shows, but it is a frame of
-     * the wrong thing waiting for a layout that puts it in front.
+     * one then renders unclipped and fully opaque for a frame.
      */
-    const holdPage = () =>
-      pageOf(overlay).forEach((el) =>
-        gsap.set(el, { ...LIFT, clipPath: clipAt(1, options.bow, el, options.span), opacity: 0 }),
-      )
+    const holdPage = () => {
+      const live = pageOf(overlay)
+      gsap.set(live, LIFT)
+      paint(1, options, live, lead, win, arcs, slats)
+    }
 
     tl.to(q(overlay, '.cc-strip'), {
       x: `${slot * PITCH}vw`,
@@ -380,13 +398,8 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     // The band becomes full-height columns as it slides, which is what leaves
     // the arcs alone to shape the expansion that follows.
     tl.to(
-      overlay.querySelectorAll('.cc-slat'),
+      slats,
       { scaleY: 100 / SLAT_H, duration: options.duration / 1.25, ease: 'power2.inOut' },
-      '<',
-    )
-    tl.to(
-      lead,
-      { scaleY: 100 / slotH(options.bow), duration: options.duration / 1.25, ease: 'power2.inOut' },
       '<',
     )
 
@@ -398,19 +411,9 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
         p: 0,
         duration: options.duration,
         ease: EASE_OPEN,
-        onUpdate: () => paint(at.p, options, pageOf(overlay), lead, win, true),
+        onUpdate: () => paint(at.p, options, pageOf(overlay), lead, win, arcs, slats, true),
       },
       '>-0.12',
-    )
-    tl.to(
-      overlay.querySelectorAll('.cc-arc.is-top'),
-      { yPercent: -110, duration: options.duration + ARC_LAG, ease: EASE_OPEN },
-      '<',
-    )
-    tl.to(
-      overlay.querySelectorAll('.cc-arc.is-bottom'),
-      { yPercent: 110, duration: options.duration + ARC_LAG, ease: EASE_OPEN },
-      '<',
     )
     tl.set(overlay, { autoAlpha: 0 })
 
