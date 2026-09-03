@@ -75,18 +75,16 @@ const PITCH = SLAT_W + GAP * 2
  * arrived at the slot in a frame instead of travelling there.
  */
 /*
- * Where the arc's curve crosses the middle of the row, in vh. The lead is sized
- * to this so it sits flush with the slats either side of it rather than
- * standing proud of them.
+ * Where the arc's curve crosses the middle of the row, in vh. The page's crop is
+ * anchored to this so it sits flush with the slats either side of it rather
+ * than standing proud of them.
  */
 const ARC_H = 50
 const slotTop = (bow: number) => ((30 + bow) / 60) * ARC_H
-/** Height of the slot, once the arc has taken its bite out of both ends. */
-const slotH = (bow: number) => 100 - 2 * slotTop(bow)
 
 /**
  * How deep the arcs bite, at the centre of the row, in vh. This one number is
- * the law: the arcs are positioned to it, the slats and the lead are cut to it,
+ * the law: the arcs are positioned to it, the slats are cut to it,
  * and the page's crop is anchored to it. Everything used to derive its own
  * version of "where the arc is" and they drifted apart.
  */
@@ -110,7 +108,7 @@ const arcAt = (p: number, bow: number) => (2 * slotTop(bow) * (p - 1) * 50) / AR
  * exactly what gives it away.
  *
  * Anchored to `bite` rather than to the arcs' measured position, so it lands on
- * the lead's own top and bottom by construction. Deriving it from the arc's
+ * the curve the arcs cut, by construction. Deriving it from the arc's
  * absolute offset instead let the two disagree by 182px at a third of the way
  * in — the page overhanging the white bar it is supposed to be turning into.
  */
@@ -152,31 +150,26 @@ function clipAt(p: number, bow: number, el: HTMLElement, spanVw: number) {
  * is not something you can catch.
  */
 /**
- * How solid the page is. The lead sits directly behind it tracking its crop
- * exactly, so fading the page is the same as veiling it in the bar's own white
+ * How solid the page is. The slat standing in for it sits directly behind it,
+ * cut to the same curve, so fading the page is the same as veiling it in the
+ * bar's own white
  * — the trick theirs does with a .main-overlay panel inside the page container.
  *
- * Linear in p, which is linear in the bar's width, which is what theirs does:
- * measured against their live transition the page is 0.17 visible at 17% open,
- * 0.40 at 40%, 0.71 at 71%. It still reads as revealing late because the width
- * is eased — the bar barely widens through its first half, so most of both the
- * opening and the fade land in the back half. Holding the fade back on top of
- * that is doing the easing's job twice.
+ * Linear in p, which is linear in the bar's width, and the same curve in both
+ * directions — the expansion is the compression run backwards, so the bar
+ * arrives with the same whiteness it left with and gives it up at the same
+ * rate. Measured against theirs the page is 0.17 visible at 17% open, 0.40 at
+ * 40%, 0.71 at 71%. It still reads as revealing late because the width is
+ * eased: the bar barely widens through its first half, so most of both the
+ * opening and the fade land in the back half.
+ *
+ * Two other curves were tried here and both were wrong in opposite ways.
+ * Holding the page back until the bar was mostly open flashed, because the
+ * width was already whipping when the page arrived. Letting it go solid early
+ * gave a dark page-shape growing with no white left in it — the row's
+ * whiteness is the thing being handed over, and this is where it happens.
  */
 const veil = (p: number) => 1 - p
-
-/**
- * Coming back, the page is not faded in over the bar — it is revealed by the
- * bar growing. It goes solid over the first stretch of the expansion, while
- * the bar is still a sliver a few viewport-widths wide, and from there the
- * crop does all the work. A linear fade here reads as the page washing in
- * through white rather than a bar opening onto it.
- */
-const REVEAL = 0.15
-const reveal = (p: number) => {
-  const t = Math.min(1, Math.max(0, (1 - p) / REVEAL))
-  return t * t * (3 - 2 * t)
-}
 
 /*
  * Two eases, not one. Fitted against their live transition: the shrink is
@@ -262,8 +255,6 @@ function paint(
    * shape the expansion.
    */
   tall = false,
-  /** How solid the page is at p. The two directions want different curves. */
-  solid: (p: number) => number = veil,
 ) {
   const wideVw = 100 - (100 - SLAT_W) * p
   /*
@@ -275,7 +266,7 @@ function paint(
   const rowVh = tall ? 100 : 100 - (100 - SLAT_H) * p
 
   page.forEach((el) =>
-    gsap.set(el, { clipPath: clipAt(p, o.bow, el, o.span), opacity: solid(p) }),
+    gsap.set(el, { clipPath: clipAt(p, o.bow, el, o.span), opacity: veil(p) }),
   )
   sizeWindow(win, 100 - (100 - o.span) * p)
 
@@ -495,7 +486,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
       p: 0,
       duration: options.duration,
       ease: EASE_OPEN,
-      onUpdate: () => paint(at.p, options, pageOf(overlay), win, arcs, slats, arriving, true, reveal),
+      onUpdate: () => paint(at.p, options, pageOf(overlay), win, arcs, slats, arriving, true),
     })
     tl.set(overlay, { autoAlpha: 0 })
 
