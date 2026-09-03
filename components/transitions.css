@@ -540,3 +540,27 @@
   --cc-ground: #0b1a16;
   --cc-slat: #7fd0b4;
 }
+
+/* ---------- dither ---------- */
+
+:root {
+  --dither-ground: #0a0a0a;
+}
+
+.dither {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+}
+
+/* Scoped to its own canvas — see the note on `.crayon svg`. */
+.dither canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dither-ink       { --dither-ground: #0a0a0a; }
+.dither-paper     { --dither-ground: #f2efe8; }
+.dither-blueprint { --dither-ground: #1f4470; }
+.dither-ember     { --dither-ground: #170a04; }

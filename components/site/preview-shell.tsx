@@ -7,6 +7,7 @@ export function PreviewShell({
   href,
   accent,
   bg,
+  fg,
   children,
 }: {
   step: string
@@ -14,13 +15,15 @@ export function PreviewShell({
   accent: string
   /** Some transitions need something to happen against — char on black is invisible. */
   bg?: string
+  /** Text colour, for a light bg where the site's light text would vanish. */
+  fg?: string
   children: ReactNode
 }) {
   return (
     <Link
       href={href}
       className="flex h-dvh flex-col justify-between overflow-hidden p-10"
-      style={bg ? { background: bg } : undefined}
+      style={bg || fg ? { background: bg, color: fg } : undefined}
     >
       <span className="font-mono text-xs uppercase tracking-[0.2em]" style={{ color: accent }}>
         page {step}

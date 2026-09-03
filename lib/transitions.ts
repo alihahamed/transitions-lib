@@ -48,6 +48,58 @@ export type TransitionMeta = {
 
 export const transitions: TransitionMeta[] = [
   {
+    slug: 'dither',
+    name: 'Dither',
+    tagline: 'The page dissolves through an ordered dither \u2014 dots, checker, weave, solid.',
+    description:
+      'A grid of square cells fills the screen in Bayer order: a sparse lattice first, then the checkerboard between, then the weave that closes it, then solid \u2014 the fade-to-black of an 8-bit console, or a halftone print building up tone. Each cell pops rather than fades. The route swaps behind the solid screen and the same sequence runs backwards to reveal it. It is drawn on a canvas from a single fill level, so a 32-column grid costs a few hundred fillRects a frame and nothing at rest, and the cells stay square on any viewport.',
+    engine: 'GSAP',
+    dependencies: ['gsap', 'next-transition-router'],
+    accent: ['#0a0a0a', '#6b6b6b', '#f2efe8'],
+    duration: 1200,
+    usage: `import { DitherTransition } from '@/components/dither'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <DitherTransition>{children}</DitherTransition>
+      </body>
+    </html>
+  )
+}`,
+    swatches: [
+      { name: 'ink', from: '#0a0a0a', to: '#3a3a3a' },
+      { name: 'paper', from: '#f2efe8', to: '#cfc9bd' },
+      { name: 'blueprint', from: '#1f4470', to: '#0b1a2e' },
+      { name: 'ember', from: '#170a04', to: '#5a2a10' },
+    ],
+    props: [
+      { name: 'children', type: 'ReactNode', def: '\u2014', description: 'Your app. Wrap the contents of <body>. (Required)' },
+      { name: 'cells', type: 'number', def: '32', description: 'Columns across the screen. Rows follow from the aspect ratio, so the cells stay square.' },
+      { name: 'matrix', type: '2 | 4 | 8', def: '4', description: 'Size of the Bayer matrix. 4 gives 16 visible steps \u2014 the classic console fade. 8 is smoother, 2 is four blunt stages.' },
+      { name: 'duration', type: 'number', def: '0.5', description: 'Seconds the screen takes to fill, and to clear.' },
+      { name: 'hold', type: 'number', def: '0.2', description: 'Seconds the screen stays solid before clearing. The route swaps during this beat.' },
+      { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole timeline. Above 1 is faster.' },
+      { name: 'palette', type: '"ink" | "paper" | "blueprint" | "ember" | "custom"', def: '"ink"', description: 'Colour of the cells. "custom" applies no preset, leaving --dither-ground to you.' },
+    ],
+    controls: [
+      { kind: 'select', key: 'palette', label: 'Palette', options: ['ink', 'paper', 'blueprint', 'ember'], def: 'ink' },
+      { kind: 'range', key: 'cells', label: 'Cells across', min: 8, max: 64, step: 4, def: 32 },
+      { kind: 'select', key: 'matrix', label: 'Matrix', options: ['2', '4', '8'], def: '4' },
+      { kind: 'range', key: 'duration', label: 'Duration', min: 0.2, max: 1.5, step: 0.05, def: 0.5 },
+      { kind: 'range', key: 'hold', label: 'Hold', min: 0, max: 1, step: 0.05, def: 0.2 },
+      { kind: 'range', key: 'speed', label: 'Speed', min: 0.4, max: 2.5, step: 0.05, def: 1 },
+    ],
+    scrub: [{ key: 'fill', label: 'fill \u2014 0 clear, 1 solid' }],
+    notes: [
+      'Cells pop on and off; nothing fades. Linear timing on purpose \u2014 a constant rate of cells is what keeps the weave\u2019s steps evenly spaced.',
+      'Drawn on a canvas from one number. Nothing is in the DOM per cell, so cells across is free to go high.',
+      'Browser back and forward are not animated \u2014 history navigation snaps.',
+    ],
+    ready: false,
+  },
+  {
     slug: 'concertina',
     name: 'Concertina',
     tagline: 'The screen folds into a strip of slats, slides to the page\u2019s slot, and opens back out.',
