@@ -191,14 +191,50 @@ const EASE_OPEN = 'power3.inOut'
  * from 100vw to 60vw, so the row and its arcs are only revealed as the lead
  * gets out of the way.
  */
+/**
+ * Which slat is currently at the centre of the screen. The row is centred, so
+ * the middle one sits there when it has not travelled; every pitch it moves
+ * puts its neighbour there instead.
+ */
+const centreSlat = (slats: ArrayLike<Element>, slotOffset: number) =>
+  Math.round((slats.length - 1) / 2) - slotOffset
+
+/** How many slots the row has travelled, read back off its own transform. */
+const slotAt = (strip: HTMLElement | null) =>
+  strip ? Math.round((gsap.getProperty(strip, 'x') as number) / (PITCH * 0.01 * window.innerWidth)) : 0
+
+/**
+ * Puts one slat above its neighbours. It has to paint over them once it is wide
+ * enough to reach them, and being a flex item it would otherwise be ordered by
+ * position in the row.
+ */
+const lift = (slats: ArrayLike<HTMLElement>, active: number) => {
+  for (let i = 0; i < slats.length; i++) gsap.set(slats[i], { zIndex: i === active ? 1 : 0 })
+}
+
+/**
+ * Every moving part from one number. 0 is a full screen, 1 is a single bar in
+ * the row.
+ *
+ * The page's stand-in is one of the row's own slats, scaled — not a panel over
+ * the top of them. As a separate element it travelled on its own, painted above
+ * the row rather than among it, and read as a white box growing over the bars
+ * instead of a bar growing. Being a slat, it also rides the row's travel for
+ * free.
+ *
+ * The window narrows as it does, the way theirs takes .home-load__inner from
+ * 100vw to 60vw, so the row and its arcs are only uncovered as it gets out of
+ * the way.
+ */
 function paint(
   p: number,
   o: { bow: number; span: number },
   page: HTMLElement[],
-  lead: HTMLElement | null,
   win: HTMLElement | null,
   arcs: NodeListOf<Element> | null,
-  slats: NodeListOf<Element> | null,
+  slats: NodeListOf<Element>,
+  /** Index of the slat standing in for the page. */
+  active: number,
   /*
    * Whether the row is already at full height. Coming back it is — it grew
    * during the shuffle — so only width moves and the arcs pulling back are what
@@ -207,18 +243,19 @@ function paint(
   tall = false,
 ) {
   const wideVw = 100 - (100 - SLAT_W) * p
+  /*
+   * The slats are full height at the start and only settle to the band by the
+   * end, the way theirs run height 100vh to 45vh. Left at 45vh throughout, the
+   * arcs do not reach them until p = 0.75 — so for three quarters of the shrink
+   * the row was flat-topped rectangles instead of a bow.
+   */
+  const rowVh = tall ? 100 : 100 - (100 - SLAT_H) * p
 
   page.forEach((el) =>
     gsap.set(el, { clipPath: clipAt(p, o.bow, el, o.span), opacity: veil(p) }),
   )
-  /*
-   * Always full height, and left to the arcs to trim. The lead lives under them,
-   * so they cut it to exactly the curve the page is clipped to — sizing it to
-   * the slot instead left it a rectangle under a bowed page, and the slats
-   * behind showed through the page's corners where it had nothing to back it.
-   */
-  gsap.set(lead, { scaleX: wideVw / SLAT_W, scaleY: 100 / slotH(o.bow) })
   gsap.set(win, { width: `${100 - (100 - o.span) * p}vw` })
+
   /*
    * Opposite signs. They retreat off opposite edges, so one value for both
    * carries the bottom arc up into the middle of the screen — a second curve
@@ -229,13 +266,10 @@ function paint(
     gsap.set(a, { yPercent: a.classList.contains('is-bottom') ? -arcY : arcY }),
   )
 
-  /*
-   * The slats are full height at the start and only settle to the band by the
-   * end, the way theirs run height 100vh to 45vh. Left at 45vh throughout, the
-   * arcs do not reach them until p = 0.75 — so for three quarters of the shrink
-   * the row was flat-topped rectangles instead of a bow.
-   */
-  gsap.set(slats, { scaleY: (tall ? 100 : 100 - (100 - SLAT_H) * p) / SLAT_H })
+  gsap.set(slats, { scaleY: rowVh / SLAT_H })
+  // Only the standing-in slat widens. The arcs trim it to the same curve they
+  // trim its neighbours to, which is what keeps it part of the row.
+  gsap.set(slats[active], { scaleX: wideVw / SLAT_W })
 }
 
 /**
@@ -305,8 +339,6 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
             <div key={i} className="cc-slat" />
           ))}
         </div>
-        {/* Sits below the arcs so it gets the same bite the real slats do. */}
-        <div className="cc-lead" style={{ height: `${slotH(options.bow)}vh` }} />
         <svg className="cc-arc is-top" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden>
           <path d={arcTop(options.bow)} />
         </svg>
@@ -328,28 +360,32 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     // is continuous with the resting state rather than a jump.
     gsap.set(overlay.querySelectorAll('.cc-arc.is-top'), { yPercent: arcAt(0, options.bow) })
     gsap.set(overlay.querySelectorAll('.cc-arc.is-bottom'), { yPercent: -arcAt(0, options.bow) })
-    gsap.set(overlay.querySelectorAll('.cc-slat'), { scaleY: 1 })
+    gsap.set(overlay.querySelectorAll('.cc-slat'), { scaleX: 1, scaleY: 1, zIndex: 0 })
   },
 
   leave: ({ overlay, options, done }) => {
     const tl = gsap.timeline({ onComplete: done })
     const page = pageOf(overlay)
-    const lead = q<HTMLElement>(overlay, '.cc-lead')
     const win = q<HTMLElement>(overlay, '.cc-window')
+    const strip = q<HTMLElement>(overlay, '.cc-strip')
     const arcs = overlay.querySelectorAll('.cc-arc')
-    const slats = overlay.querySelectorAll('.cc-slat')
+    const slats = overlay.querySelectorAll<HTMLElement>('.cc-slat')
 
-    // Ground and row come up behind a full-screen lead, which the page covers.
+    // Whichever slat the row is parked over. Read back rather than remembered,
+    // so it survives a reload or an interrupted navigation.
+    const active = centreSlat(slats, slotAt(strip))
+    lift(slats, active)
+
     gsap.set(overlay, { autoAlpha: 1 })
     gsap.set(page, LIFT)
-    paint(0, options, page, lead, win, arcs, slats)
+    paint(0, options, page, win, arcs, slats, active)
 
     const at = { p: 0 }
     tl.to(at, {
       p: 1,
       duration: options.duration,
       ease: EASE_CLOSE,
-      onUpdate: () => paint(at.p, options, page, lead, win, arcs, slats),
+      onUpdate: () => paint(at.p, options, page, win, arcs, slats, active),
     })
 
     tl.timeScale(options.speed)
@@ -358,10 +394,13 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
 
   enter: ({ overlay, options, done }) => {
     const page = pageOf(overlay)
-    const lead = q<HTMLElement>(overlay, '.cc-lead')
     const win = q<HTMLElement>(overlay, '.cc-window')
+    const strip = q<HTMLElement>(overlay, '.cc-strip')
     const arcs = overlay.querySelectorAll('.cc-arc')
-    const slats = overlay.querySelectorAll('.cc-slat')
+    const slats = overlay.querySelectorAll<HTMLElement>('.cc-slat')
+
+    // The slat the page collapsed into. It rides away with the row.
+    const leaving = centreSlat(slats, slotAt(strip))
 
     /*
      * Synchronously, not as a timeline step. The route has already swapped by
@@ -369,14 +408,14 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
      * it at full size is enough to read as a flash.
      */
     gsap.set(page, LIFT)
-    paint(1, options, page, lead, win, arcs, slats)
+    paint(1, options, page, win, arcs, slats, leaving)
 
     const tl = gsap.timeline({
       onComplete: () => {
-        // Hand the page back exactly as it was found, and park the row at band
-        // height so the next navigation starts where this one began.
+        // Hand the page back exactly as it was found, and park the row so the
+        // next navigation starts where this one began.
         gsap.set(pageOf(overlay), { clearProps: 'clipPath,position,zIndex,opacity' })
-        gsap.set(slats, { scaleY: 1 })
+        gsap.set(slats, { scaleX: 1, scaleY: 1, zIndex: 0 })
         done()
       },
     })
@@ -384,14 +423,13 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     // location is the destination by now, which is what makes the slot knowable
     // at all — during leave this is still the page being left.
     const slot = slotFor(location.pathname, options.spread)
+    const arriving = centreSlat(slats, slot)
 
     /*
      * Only the page, and against a fresh query. enter() runs either side of
      * React committing the new page, so the node styled synchronously above is
      * sometimes the one being replaced — the incoming one then renders
-     * unclipped and fully opaque for a frame. Nothing else needs repainting
-     * while the row slides, and repainting the row here would fight the travel
-     * below.
+     * unclipped and fully opaque for a frame.
      */
     const holdPage = () => {
       const live = pageOf(overlay)
@@ -401,55 +439,36 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
       )
     }
 
-    const strip = q<HTMLElement>(overlay, '.cc-strip')
     const shuffle = options.duration / 1.25
-
-    /*
-     * The bar the page collapsed into is one of the row's, so it travels with
-     * the row. Pinned at the centre it sat still while everything slid past it,
-     * which reads as the row moving around a bar rather than the row moving.
-     *
-     * Both are driven off one tweened number rather than two tweens with the
-     * same duration and ease — those still slipped 22px apart, and a bar
-     * dragging behind its own row is exactly the thing being fixed.
-     *
-     * The lead is reset to the centre before the expansion. Nothing shows: the
-     * row travels a whole number of pitches, so another slat is at the centre
-     * by then, exactly where the lead lands and the same colour.
-     */
-    const from = gsap.getProperty(strip, 'x') as number
-    const to = slot * PITCH * 0.01 * window.innerWidth
-    const ride = { x: from }
-
-    tl.to(ride, {
-      x: to,
+    tl.to(strip, {
+      x: `${slot * PITCH}vw`,
       duration: shuffle,
       ease: 'power2.inOut',
-      onUpdate: () => {
-        gsap.set(strip, { x: ride.x })
-        gsap.set(lead, { x: ride.x - from })
-        holdPage()
-      },
+      onUpdate: holdPage,
     })
 
     // The band becomes full-height columns as it slides, which is what leaves
     // the arcs alone to shape the expansion that follows.
     tl.to(slats, { scaleY: 100 / SLAT_H, duration: shuffle, ease: 'power2.inOut' }, '<')
 
-    tl.set(lead, { x: 0 })
+    /*
+     * The slat that has arrived at the centre takes over. Both are a plain bar
+     * of the same colour at this point, so the handover is not visible — and it
+     * is what makes the page grow out of the row rather than out of something
+     * laid over it.
+     */
+    tl.call(() => {
+      gsap.set(slats[leaving], { scaleX: 1 })
+      lift(slats, arriving)
+    })
 
-    // The bar the row landed on widens back out, and the page grows out of it.
     const at = { p: 1 }
-    tl.to(
-      at,
-      {
-        p: 0,
-        duration: options.duration,
-        ease: EASE_OPEN,
-        onUpdate: () => paint(at.p, options, pageOf(overlay), lead, win, arcs, slats, true),
-      },
-      '>-0.12',
-    )
+    tl.to(at, {
+      p: 0,
+      duration: options.duration,
+      ease: EASE_OPEN,
+      onUpdate: () => paint(at.p, options, pageOf(overlay), win, arcs, slats, arriving, true),
+    })
     tl.set(overlay, { autoAlpha: 0 })
 
     tl.timeScale(options.speed)

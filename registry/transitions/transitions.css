@@ -489,6 +489,8 @@
 
 .cc-slat {
   flex: 0 0 auto;
+  /* So the one standing in for the page can be raised over its neighbours. */
+  position: relative;
   width: var(--cc-slat-w, 3vw);
   height: var(--cc-slat-h, 45vh);
   margin: 0 var(--cc-gap, 0.5vw);
@@ -502,22 +504,6 @@
  * quadratic stays a quadratic under a non-uniform scale, so the arc survives any
  * viewport shape and `bow` alone decides how deep it goes.
  */
-/*
- * The page's stand-in. One bar's width, scaled up to the whole screen at the
- * start and down to a bar by the end — the wide-to-thin stage the row is named
- * for. Scaled rather than resized so it costs a transform, not a layout.
- */
-.cc-lead {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: var(--cc-slat-w, 3vw);
-  margin: 0 0 0 calc(var(--cc-slat-w, 3vw) / -2);
-  transform-origin: 50% 50%;
-  translate: 0 -50%;
-  background: var(--cc-slat);
-}
-
 .cc-arc {
   position: absolute;
   left: 0;
