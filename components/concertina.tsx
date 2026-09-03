@@ -199,9 +199,16 @@ const EASE_OPEN = 'power3.inOut'
 const centreSlat = (slats: ArrayLike<Element>, slotOffset: number) =>
   Math.round((slats.length - 1) / 2) - slotOffset
 
-/** How many slots the row has travelled, read back off its own transform. */
-const slotAt = (strip: HTMLElement | null) =>
-  strip ? Math.round((gsap.getProperty(strip, 'x') as number) / (PITCH * 0.01 * window.innerWidth)) : 0
+/**
+ * How many slots the row has travelled, read back off its computed transform.
+ * Off the DOM rather than GSAP's cache: the cache answered 0 for a row the
+ * browser had at 73px, which put the page's bar one pitch off centre.
+ */
+const slotAt = (strip: HTMLElement | null) => {
+  if (!strip) return 0
+  const x = new DOMMatrix(getComputedStyle(strip).transform).m41
+  return Math.round(x / (PITCH * 0.01 * window.innerWidth))
+}
 
 /**
  * Puts one slat above its neighbours. It has to paint over them once it is wide
@@ -267,9 +274,13 @@ function paint(
   )
 
   gsap.set(slats, { scaleY: rowVh / SLAT_H })
-  // Only the standing-in slat widens. The arcs trim it to the same curve they
-  // trim its neighbours to, which is what keeps it part of the row.
-  gsap.set(slats[active], { scaleX: wideVw / SLAT_W })
+  /*
+   * Only the standing-in slat widens, and it widens by width, not scale. Width
+   * reflows the row, so the neighbours are pushed outward as it grows — the
+   * whole row opening up, which is what an accordion does. Scaled, it grew over
+   * neighbours that never moved, and read as a box laid on top of the bars.
+   */
+  gsap.set(slats[active], { width: `${wideVw}vw` })
 }
 
 /**
@@ -360,7 +371,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
     // is continuous with the resting state rather than a jump.
     gsap.set(overlay.querySelectorAll('.cc-arc.is-top'), { yPercent: arcAt(0, options.bow) })
     gsap.set(overlay.querySelectorAll('.cc-arc.is-bottom'), { yPercent: -arcAt(0, options.bow) })
-    gsap.set(overlay.querySelectorAll('.cc-slat'), { scaleX: 1, scaleY: 1, zIndex: 0 })
+    gsap.set(overlay.querySelectorAll('.cc-slat'), { scaleY: 1, zIndex: 0, clearProps: 'width' })
   },
 
   leave: ({ overlay, options, done }) => {
@@ -415,7 +426,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
         // Hand the page back exactly as it was found, and park the row so the
         // next navigation starts where this one began.
         gsap.set(pageOf(overlay), { clearProps: 'clipPath,position,zIndex,opacity' })
-        gsap.set(slats, { scaleX: 1, scaleY: 1, zIndex: 0 })
+        gsap.set(slats, { scaleY: 1, zIndex: 0, clearProps: 'width' })
         done()
       },
     })
@@ -458,7 +469,7 @@ export const ConcertinaTransition = createTransition<ConcertinaOptions>({
      * laid over it.
      */
     tl.call(() => {
-      gsap.set(slats[leaving], { scaleX: 1 })
+      gsap.set(slats[leaving], { clearProps: 'width' })
       lift(slats, arriving)
     })
 
