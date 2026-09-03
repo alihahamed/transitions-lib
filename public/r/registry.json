@@ -4,6 +4,32 @@
   "homepage": "https://github.com/alihahamed/transitions-lib",
   "items": [
     {
+      "name": "concertina",
+      "type": "registry:component",
+      "title": "Concertina",
+      "description": "The page collapses into one bar of a row, the row slides to the slot belonging to the page you are going to, and that bar opens back out. GSAP.",
+      "dependencies": [
+        "gsap",
+        "next-transition-router"
+      ],
+      "files": [
+        {
+          "path": "registry/transitions/concertina.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transition-core.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transitions.css",
+          "type": "registry:file",
+          "target": "@components/transitions.css"
+        }
+      ],
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { ConcertinaTransition } from \"@/components/concertina\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <ConcertinaTransition>{children}</ConcertinaTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nThe page collapses into one bar of a row, the row slides to the slot that\nbelongs to the page you are going to, and that bar opens back out. The slot\ncomes from a hash of the path, so a page always lands on the same bar with\nnothing to configure.\n\nColour: four palettes ship as classes \u2014 palette=\"mono\" (default), \"inverse\",\n\"ember\" or \"pine\". For anything else pass palette=\"custom\" and set --cc-ground\nand --cc-slat yourself in components/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~1s)."
+    },
+    {
       "name": "riser",
       "type": "registry:component",
       "title": "Riser",
