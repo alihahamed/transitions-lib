@@ -56,7 +56,7 @@ export const transitions: TransitionMeta[] = [
     engine: 'GSAP',
     dependencies: ['gsap', 'next-transition-router'],
     accent: ['#0d0d0f', '#f6f4ef', '#7fd0b4'],
-    duration: 2300,
+    duration: 2800,
     usage: `import { ConcertinaTransition } from '@/components/concertina'
 
 export default function RootLayout({ children }) {
@@ -77,20 +77,20 @@ export default function RootLayout({ children }) {
     props: [
       { name: 'children', type: 'ReactNode', def: '\u2014', description: 'Your app. Wrap the contents of <body>. (Required)' },
       { name: 'slats', type: 'number', def: '41', description: 'How many slats the row is made of. It has to stay wider than the screen once shuffled.' },
-      { name: 'bow', type: 'number', def: '14', description: 'Depth of the arc that bites into the top and bottom of the row. 0 leaves the row flat.' },
+      { name: 'bow', type: 'number', def: '17', description: 'Depth of the arc that bites into the top and bottom of the row. 0 leaves the row flat.' },
       { name: 'shuffle', type: 'number', def: '4', description: 'How far the strip slides per slot, in viewport widths.' },
       { name: 'spread', type: 'number', def: '6', description: 'How many slots either side of centre a page can land on.' },
-      { name: 'duration', type: 'number', def: '0.85', description: 'Seconds the page takes to shrink into the slot, and to open back out. The shrink runs on power4.inOut and the expansion on the gentler power3.inOut, matching the reference.' },
+      { name: 'duration', type: 'number', def: '1', description: 'Seconds the page takes to shrink into the slot, and to open back out. The shrink runs on power4.inOut and the expansion on the gentler power3.inOut, matching the reference.' },
       { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole timeline. Above 1 is faster.' },
       { name: 'palette', type: '"mono" | "inverse" | "ember" | "pine" | "custom"', def: '"mono"', description: 'Ground and slat colours. "custom" applies no preset, leaving your own CSS variables in charge.' },
     ],
     controls: [
       { kind: 'select', key: 'palette', label: 'Palette', options: ['mono', 'inverse', 'ember', 'pine'], def: 'mono' },
       { kind: 'range', key: 'slats', label: 'Slats', min: 15, max: 61, step: 2, def: 41 },
-      { kind: 'range', key: 'bow', label: 'Bow', min: 0, max: 30, step: 1, def: 14 },
+      { kind: 'range', key: 'bow', label: 'Bow', min: 0, max: 30, step: 1, def: 17 },
       { kind: 'range', key: 'span', label: 'Span', min: 20, max: 100, step: 2, def: 60 },
       { kind: 'range', key: 'spread', label: 'Spread', min: 0, max: 12, step: 1, def: 6 },
-      { kind: 'range', key: 'duration', label: 'Duration', min: 0.3, max: 1.6, step: 0.05, def: 0.85 },
+      { kind: 'range', key: 'duration', label: 'Duration', min: 0.3, max: 1.6, step: 0.05, def: 1 },
       { kind: 'range', key: 'speed', label: 'Speed', min: 0.4, max: 2.5, step: 0.05, def: 1 },
     ],
     notes: [

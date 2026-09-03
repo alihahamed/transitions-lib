@@ -44,10 +44,10 @@ export type ConcertinaOptions = {
 
 const DEFAULTS: ConcertinaOptions = {
   slats: 41,
-  bow: 14,
+  bow: 17,
   span: 60,
   spread: 6,
-  duration: 0.85,
+  duration: 1,
   speed: 1,
   palette: 'mono',
 }
