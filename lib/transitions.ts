@@ -99,7 +99,7 @@ export default function RootLayout({ children }) {
       'The slats never resize. The page is clipped into one slot and back out, which is what keeps the row a band instead of turning the screen into stripes.',
       'Browser back and forward are not animated \u2014 history navigation snaps.',
     ],
-    ready: false,
+    ready: true,
   },
   {
     slug: 'push',
