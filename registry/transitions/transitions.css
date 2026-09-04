@@ -604,6 +604,27 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 
+/* A highlight along the top and a dark under-edge: a bar with thickness, not a painted band. */
+.slate-stick::before,
+.slate-stick::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.slate-stick::before {
+  top: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.slate-stick::after {
+  bottom: 0;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
 .slate-hinge-right .slate-stick {
   transform-origin: 100% 100%;
 }

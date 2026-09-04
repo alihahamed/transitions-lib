@@ -82,6 +82,8 @@ export default function RootLayout({ children }) {
       { name: 'duration', type: 'number', def: '0.5', description: 'Seconds the slate takes to rise into frame, and to be pulled out.' },
       { name: 'hold', type: 'number', def: '0.08', description: 'Seconds the stick stays shut after the route swaps, before it lifts.' },
       { name: 'settle', type: 'number', def: '7', description: 'How far the slate drops after the clap, in vh, as the hand relaxes \u2014 which brings the top edge of the stick into frame with the new page above it. 0 keeps it flush.' },
+      { name: 'drift', type: 'number', def: '5', description: 'Sideways travel on the way in and out, in vw, from the hinge side \u2014 the arc of the hand. 0 is straight up and down.' },
+      { name: 'shake', type: 'number', def: '2', description: 'Jolt of the slate at the clap, in px. 0 for none.' },
       { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole timeline. Above 1 is faster.' },
       { name: 'palette', type: '"ink" | "chalk" | "ember" | "custom"', def: '"ink"', description: 'Board and stripe colours. "custom" applies no preset, leaving --slate-board and --slate-stripe to you.' },
     ],
@@ -94,6 +96,8 @@ export default function RootLayout({ children }) {
       { kind: 'range', key: 'duration', label: 'Duration', min: 0.2, max: 1.2, step: 0.05, def: 0.5 },
       { kind: 'range', key: 'hold', label: 'Hold', min: 0, max: 0.6, step: 0.02, def: 0.08 },
       { kind: 'range', key: 'settle', label: 'Settle', min: 0, max: 16, step: 1, def: 7 },
+      { kind: 'range', key: 'drift', label: 'Drift', min: 0, max: 15, step: 1, def: 5 },
+      { kind: 'range', key: 'shake', label: 'Shake', min: 0, max: 8, step: 0.5, def: 2 },
       { kind: 'range', key: 'speed', label: 'Speed', min: 0.4, max: 2.5, step: 0.05, def: 1 },
     ],
     notes: [

@@ -40,6 +40,10 @@ export type SlateOptions = {
   hold: number
   /** How far the slate drops after the clap, in vh, bringing the stick's top edge into frame. 0 keeps it flush. */
   settle: number
+  /** Sideways travel on the way in and out, in vw, from the hinge side — the arc of the hand. 0 is straight up and down. */
+  drift: number
+  /** Jolt of the slate at the clap, in px. 0 for none. */
+  shake: number
   /** Multiplies the whole timeline. Above 1 is faster. */
   speed: number
   /** Board and stripe colours. "custom" applies no preset, leaving --slate-board and --slate-stripe to you. */
@@ -54,6 +58,8 @@ const DEFAULTS: SlateOptions = {
   duration: 0.5,
   hold: 0.08,
   settle: 7,
+  drift: 5,
+  shake: 2,
   speed: 1,
   palette: 'ink',
 }
@@ -98,9 +104,10 @@ const clearance = (rig: HTMLElement, o: SlateOptions) => {
 const held = (o: SlateOptions, roll: number) => ({
   rotationX: 12,
   rotation: o.hinge === 'left' ? -roll : roll,
+  xPercent: o.hinge === 'left' ? -o.drift : o.drift,
   scale: 0.94,
 })
-const SQUARE = { rotationX: 0, rotation: 0, scale: 1 }
+const SQUARE = { rotationX: 0, rotation: 0, xPercent: 0, scale: 1 }
 
 export const SlateTransition = createTransition<SlateOptions>({
   timeout: 6000,
@@ -154,15 +161,24 @@ export const SlateTransition = createTransition<SlateOptions>({
     tl.to(rig, { yPercent: SEAT - 1.5, ...SQUARE, duration: d, ease: 'power2.inOut' })
     tl.to(rig, { yPercent: SEAT, duration: 0.14, ease: 'power2.inOut' })
 
-    // Clap: gravity and a flick of the wrist, then one rebound.
-    tl.to(stick, { rotation: 0, duration: 0.15, ease: 'power3.in' }, '>+0.04')
+    // Clap: gravity and a flick of the wrist, then one rebound. It begins while
+    // the slate is still setting down, so the arrival and the clap are one gesture.
+    tl.to(stick, { rotation: 0, duration: 0.15, ease: 'power3.in' }, '-=0.08')
     tl.addLabel('impact')
     tl.to(stick, { rotation: open(o) * 0.07, duration: 0.05, ease: 'power1.out' })
     tl.to(stick, { rotation: 0, duration: 0.07, ease: 'power1.in' })
 
-    // The hand takes the hit: the whole slate dips and comes back.
+    // The hand takes the hit: the whole slate dips and comes back, with a
+    // sideways jolt that dies out in a few frames.
     tl.to(rig, { yPercent: 0, duration: 0.05, ease: 'power2.out' }, 'impact')
     tl.to(rig, { yPercent: SEAT, duration: 0.22, ease: 'power2.out' }, 'impact+=0.05')
+    if (o.shake) {
+      const j = o.shake
+      tl.to(rig, { x: j, duration: 0.03, ease: 'power1.out' }, 'impact')
+      tl.to(rig, { x: -j * 0.6, duration: 0.04, ease: 'power1.inOut' }, 'impact+=0.03')
+      tl.to(rig, { x: j * 0.3, duration: 0.04, ease: 'power1.inOut' }, 'impact+=0.07')
+      tl.to(rig, { x: 0, duration: 0.05, ease: 'power1.out' }, 'impact+=0.11')
+    }
 
     tl.timeScale(o.speed)
     return () => tl.kill()
@@ -185,6 +201,7 @@ export const SlateTransition = createTransition<SlateOptions>({
     gsap.set(rig, {
       visibility: 'visible',
       yPercent: SEAT,
+      x: 0,
       transformPerspective: 800,
       transformOrigin: '50% 100%',
       ...SQUARE,
