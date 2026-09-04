@@ -102,7 +102,7 @@ export default function RootLayout({ children }) {
       'The stick opens far enough that its tip leaves the frame, the way a real clapstick swings well clear of the board. The gap above the board is where the new page is first seen.',
       'Browser back and forward are not animated \u2014 history navigation snaps.',
     ],
-    ready: false,
+    ready: true,
   },
   {
     slug: 'dither',
