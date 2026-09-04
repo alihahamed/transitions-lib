@@ -13,10 +13,14 @@ import './transitions.css'
  * in the gap it leaves above the board, then the whole slate is pulled down
  * out of frame. Nothing fades; every reveal is a piece of board moving.
  *
- * The motion is written as a hand would do it: the rise decelerates into a
- * small overshoot and settles, the stick falls under gravity and rebounds
- * once, the slate dips on impact and the hand absorbs it, the lift is quick
- * with a soft stop, and the pull-out starts slow and accelerates away.
+ * The motion is written as a hand would do it. The slate comes into shot
+ * off-square — leaning away, rolled a few degrees, a touch small — and
+ * squares up as it arrives, a hair high, then settles. Flat and full-width
+ * from the first frame it read as a wipe; the lean and roll are what make it
+ * a thing being held over the page. The stick falls under gravity and
+ * rebounds once, the slate dips on impact and the hand absorbs it, the lift
+ * is quick with a soft stop, and the pull-out takes it away the same way it
+ * came, slow then gone.
  *
  *   // app/layout.tsx
  *   <SlateTransition>{children}</SlateTransition>
@@ -42,7 +46,7 @@ export type SlateOptions = {
 
 const DEFAULTS: SlateOptions = {
   angle: 20,
-  stick: 18,
+  stick: 12,
   finish: 'striped',
   hinge: 'left',
   duration: 0.4,
@@ -61,6 +65,18 @@ const open = (o: SlateOptions) => (o.hinge === 'left' ? -o.angle : o.angle)
 
 /** Parked below the frame and hidden, so the stick's upward overrun is never seen at rest. */
 const park = (rig: HTMLElement) => gsap.set(rig, { yPercent: 100, visibility: 'hidden' })
+
+/**
+ * The off-square pose the slate holds while it is in the hand: leaning away at
+ * the top, rolled towards the hinge side, and a little small. Pivoting at the
+ * bottom edge, where the hand is. Everything here is zero once it has arrived.
+ */
+const held = (o: SlateOptions, roll: number) => ({
+  rotationX: 12,
+  rotation: o.hinge === 'left' ? -roll : roll,
+  scale: 0.94,
+})
+const SQUARE = { rotationX: 0, rotation: 0, scale: 1 }
 
 export const SlateTransition = createTransition<SlateOptions>({
   timeout: 6000,
@@ -100,11 +116,18 @@ export const SlateTransition = createTransition<SlateOptions>({
     const d = o.duration
     const tl = gsap.timeline({ onComplete: done })
 
-    gsap.set(rig, { visibility: 'visible', yPercent: 100 })
+    gsap.set(rig, {
+      visibility: 'visible',
+      yPercent: 100,
+      transformPerspective: 800,
+      transformOrigin: '50% 100%',
+      ...held(o, 5),
+    })
     gsap.set(stick, { rotation: open(o) })
 
-    // Rise: a reach, bell-shaped velocity, a hair too high, then set down.
-    tl.to(rig, { yPercent: -1.5, duration: d, ease: 'power2.inOut' })
+    // Rise: a reach, bell-shaped velocity, squaring up on the way, a hair too
+    // high, then set down.
+    tl.to(rig, { yPercent: -1.5, ...SQUARE, duration: d, ease: 'power2.inOut' })
     tl.to(rig, { yPercent: 0, duration: 0.14, ease: 'power2.inOut' })
 
     // Clap: gravity and a flick of the wrist, then one rebound.
@@ -135,14 +158,21 @@ export const SlateTransition = createTransition<SlateOptions>({
       },
     })
 
-    gsap.set(rig, { visibility: 'visible', yPercent: 0 })
+    gsap.set(rig, {
+      visibility: 'visible',
+      yPercent: 0,
+      transformPerspective: 800,
+      transformOrigin: '50% 100%',
+      ...SQUARE,
+    })
     gsap.set(stick, { rotation: 0 })
 
     // Lift: the thumb flicks it open, soft stop with a touch of overshoot.
     tl.to(stick, { rotation: open(o), duration: 0.3, ease: 'back.out(1.5)' }, o.hold)
 
-    // Pull-out begins while the stick is still lifting, slow then away.
-    tl.to(rig, { yPercent: 100, duration: d, ease: 'power3.in' }, o.hold + 0.16)
+    // Pull-out begins while the stick is still lifting: it drops, rolls the
+    // other way and leans off as the hand takes it, slow then away.
+    tl.to(rig, { yPercent: 100, ...held(o, -4), duration: d, ease: 'power3.in' }, o.hold + 0.16)
 
     tl.timeScale(o.speed)
     return () => tl.kill()

@@ -76,7 +76,7 @@ export default function RootLayout({ children }) {
     props: [
       { name: 'children', type: 'ReactNode', def: '\u2014', description: 'Your app. Wrap the contents of <body>. (Required)' },
       { name: 'angle', type: 'number', def: '20', description: 'Degrees the stick opens.' },
-      { name: 'stick', type: 'number', def: '18', description: 'Height of the stick, in vh. The lip below it on the board is the same height.' },
+      { name: 'stick', type: 'number', def: '12', description: 'Height of the stick, in vh. The lip below it on the board is the same height.' },
       { name: 'finish', type: '"striped" | "plain"', def: '"striped"', description: 'Diagonal stripes on the stick and lip, or flat board.' },
       { name: 'hinge', type: '"left" | "right"', def: '"left"', description: 'Which end the stick pivots on.' },
       { name: 'duration', type: 'number', def: '0.4', description: 'Seconds the slate takes to rise into frame, and to be pulled out.' },
@@ -89,7 +89,7 @@ export default function RootLayout({ children }) {
       { kind: 'select', key: 'finish', label: 'Finish', options: ['striped', 'plain'], def: 'striped' },
       { kind: 'select', key: 'hinge', label: 'Hinge', options: ['left', 'right'], def: 'left' },
       { kind: 'range', key: 'angle', label: 'Angle', min: 6, max: 40, step: 1, def: 20 },
-      { kind: 'range', key: 'stick', label: 'Stick height', min: 8, max: 30, step: 1, def: 18 },
+      { kind: 'range', key: 'stick', label: 'Stick height', min: 6, max: 24, step: 1, def: 12 },
       { kind: 'range', key: 'duration', label: 'Duration', min: 0.2, max: 1, step: 0.05, def: 0.4 },
       { kind: 'range', key: 'hold', label: 'Hold', min: 0, max: 0.6, step: 0.02, def: 0.08 },
       { kind: 'range', key: 'speed', label: 'Speed', min: 0.4, max: 2.5, step: 0.05, def: 1 },
