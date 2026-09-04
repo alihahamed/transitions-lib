@@ -30,8 +30,6 @@ export type SlateOptions = {
   angle: number
   /** Height of the stick as a share of the viewport height, in vh. */
   stick: number
-  /** Diagonal stripes on the stick and the lip below it, or flat board. */
-  finish: 'striped' | 'plain'
   /** Which end the stick pivots on. */
   hinge: 'left' | 'right'
   /** Seconds the slate takes to rise into frame, and to be pulled out. */
@@ -47,13 +45,12 @@ export type SlateOptions = {
   /** Multiplies the whole timeline. Above 1 is faster. */
   speed: number
   /** Board and stripe colours. "custom" applies no preset, leaving --slate-board and --slate-stripe to you. */
-  palette: 'ink' | 'chalk' | 'ember' | 'custom'
+  palette: 'ink' | 'chalk' | 'custom'
 }
 
 const DEFAULTS: SlateOptions = {
   angle: 20,
   stick: 12,
-  finish: 'striped',
   hinge: 'left',
   duration: 0.5,
   hold: 0.08,
@@ -118,7 +115,6 @@ export const SlateTransition = createTransition<SlateOptions>({
       className={[
         'slate',
         `slate-hinge-${o.hinge}`,
-        o.finish === 'striped' ? 'slate-striped' : '',
         o.palette === 'custom' ? '' : `slate-${o.palette}`,
       ].join(' ')}
       style={{ '--slate-stick': `${o.stick}vh` } as React.CSSProperties}

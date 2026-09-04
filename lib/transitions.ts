@@ -55,7 +55,7 @@ export const transitions: TransitionMeta[] = [
       'A clapperboard rises into frame from the bottom with its stick open and covers the page. The stick claps shut \u2014 that is the moment the screen is fully covered, and the route swaps behind it. The stick lifts again and the new page shows in the gap it leaves above the board, then the whole slate is pulled down out of frame. Nothing fades; every reveal is a piece of board moving. The motion is written as a hand would do it: the rise overshoots a hair and settles, the stick falls under gravity and rebounds once, the slate dips on the impact, and the pull-out starts slow and accelerates away.',
     engine: 'GSAP',
     dependencies: ['gsap', 'next-transition-router'],
-    accent: ['#141414', '#f2efe8', '#ff9d3c'],
+    accent: ['#141414', '#f2efe8', '#6b6b6b'],
     duration: 1500,
     usage: `import { SlateTransition } from '@/components/slate'
 
@@ -71,13 +71,11 @@ export default function RootLayout({ children }) {
     swatches: [
       { name: 'ink', from: '#141414', to: '#f2efe8' },
       { name: 'chalk', from: '#f2efe8', to: '#141414' },
-      { name: 'ember', from: '#170a04', to: '#ff9d3c' },
     ],
     props: [
       { name: 'children', type: 'ReactNode', def: '\u2014', description: 'Your app. Wrap the contents of <body>. (Required)' },
       { name: 'angle', type: 'number', def: '20', description: 'Degrees the stick opens.' },
-      { name: 'stick', type: 'number', def: '12', description: 'Height of the stick, in vh. The lip below it on the board is the same height.' },
-      { name: 'finish', type: '"striped" | "plain"', def: '"striped"', description: 'Diagonal stripes on the stick and lip, or flat board.' },
+      { name: 'stick', type: 'number', def: '12', description: 'Height of the stick, in vh. The striped lip below it on the board is the same height.' },
       { name: 'hinge', type: '"left" | "right"', def: '"left"', description: 'Which end the stick pivots on.' },
       { name: 'duration', type: 'number', def: '0.5', description: 'Seconds the slate takes to rise into frame, and to be pulled out.' },
       { name: 'hold', type: 'number', def: '0.08', description: 'Seconds the stick stays shut after the route swaps, before it lifts.' },
@@ -85,11 +83,10 @@ export default function RootLayout({ children }) {
       { name: 'drift', type: 'number', def: '5', description: 'Sideways travel on the way in and out, in vw, from the hinge side \u2014 the arc of the hand. 0 is straight up and down.' },
       { name: 'shake', type: 'number', def: '2', description: 'Jolt of the slate at the clap, in px. 0 for none.' },
       { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole timeline. Above 1 is faster.' },
-      { name: 'palette', type: '"ink" | "chalk" | "ember" | "custom"', def: '"ink"', description: 'Board and stripe colours. "custom" applies no preset, leaving --slate-board and --slate-stripe to you.' },
+      { name: 'palette', type: '"ink" | "chalk" | "custom"', def: '"ink"', description: 'Board and stripe colours. "custom" applies no preset, leaving --slate-board and --slate-stripe to you.' },
     ],
     controls: [
-      { kind: 'select', key: 'palette', label: 'Palette', options: ['ink', 'chalk', 'ember'], def: 'ink' },
-      { kind: 'select', key: 'finish', label: 'Finish', options: ['striped', 'plain'], def: 'striped' },
+      { kind: 'select', key: 'palette', label: 'Palette', options: ['ink', 'chalk'], def: 'ink' },
       { kind: 'select', key: 'hinge', label: 'Hinge', options: ['left', 'right'], def: 'left' },
       { kind: 'range', key: 'angle', label: 'Angle', min: 6, max: 40, step: 1, def: 20 },
       { kind: 'range', key: 'stick', label: 'Stick height', min: 6, max: 24, step: 1, def: 12 },

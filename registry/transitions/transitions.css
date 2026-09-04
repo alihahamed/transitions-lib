@@ -597,7 +597,6 @@
   right: 0;
   top: 0;
   height: var(--slate-stick);
-  background: var(--slate-board);
   transform-origin: 0% 100%;
   will-change: transform;
   /* Lies on the board when shut; hangs over it when open. */
@@ -652,7 +651,7 @@
 }
 
 /* Stripes lean opposite ways on the two halves, meeting as chevrons at the seam. */
-.slate-striped .slate-stick {
+.slate-stick {
   background: repeating-linear-gradient(
     -60deg,
     var(--slate-stripe) 0 calc(var(--slate-stick) * 0.5),
@@ -660,7 +659,7 @@
   );
 }
 
-.slate-striped .slate-lip {
+.slate-lip {
   background: repeating-linear-gradient(
     60deg,
     var(--slate-stripe) 0 calc(var(--slate-stick) * 0.5),
@@ -670,7 +669,6 @@
 
 .slate-ink   { --slate-board: #141414; --slate-stripe: #f2efe8; }
 .slate-chalk { --slate-board: #f2efe8; --slate-stripe: #141414; }
-.slate-ember { --slate-board: #170a04; --slate-stripe: #ff9d3c; }
 
 @media (prefers-reduced-motion: reduce) {
   .slate { display: none }
