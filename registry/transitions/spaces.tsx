@@ -9,8 +9,12 @@ import './transitions.css'
  * The way macOS switches desktops. The two pages are one rigid strip with a
  * thin gap between them, and the strip slides across on a spring — fast out
  * of the gate, a long soft landing, no overshoot unless you ask for one. As
- * it starts to move both pages lift off the surface a little and cast a
- * shadow onto the backdrop, and they settle back down as they land.
+ * it starts to move both pages lift off the surface a little, take on rounded
+ * corners and lean into the direction of travel, cast a shadow onto the
+ * backdrop, and settle back down flat and square as they land. The incoming
+ * page trails the outgoing one by a frame, so the gap between them breathes
+ * open at launch and closes on landing. A soft light on the backdrop moves at
+ * a fraction of their speed.
  *
  * Direction comes from where you are going. Give it the order of your routes
  * and a page further along slides in from the right, a page further back from
@@ -41,6 +45,12 @@ export type SpacesOptions = {
   parallax: number
   /** Overshoot on landing, 0 to 0.4. 0 is critically damped, the way macOS does it. */
   bounce: number
+  /** Corner radius the pages take on while lifted, in px. They square up as they land. */
+  radius: number
+  /** Degrees each page leans into the direction of travel while in flight. */
+  bank: number
+  /** Milliseconds the incoming page trails the outgoing one, so the gap breathes. */
+  lag: number
   /** What shows in the gap and around the lifted pages. "custom" leaves --spaces-backdrop to you. */
   backdrop: 'dark' | 'light' | 'custom'
 }
@@ -54,6 +64,9 @@ const DEFAULTS: SpacesOptions = {
   lift: 4,
   parallax: 0,
   bounce: 0,
+  radius: 16,
+  bank: 5,
+  lag: 16,
   backdrop: 'dark',
 }
 
@@ -114,6 +127,9 @@ export const SpacesTransition = createViewTransition<SpacesOptions>({
     root.style.setProperty('--spaces-lift', String(1 - o.lift / 100))
     root.style.setProperty('--spaces-stay', String(1 - o.parallax))
     root.style.setProperty('--spaces-ease', spring(o.bounce))
+    root.style.setProperty('--spaces-radius', `${o.radius}px`)
+    root.style.setProperty('--spaces-bank', `${o.bank}deg`)
+    root.style.setProperty('--spaces-lag', `${o.lag}ms`)
     for (const b of ['dark', 'light']) root.classList.toggle(`spaces-${b}`, b === o.backdrop)
   },
 })

@@ -674,26 +674,39 @@
   .slate { display: none }
 }
 
+
 /* ---------- spaces ---------- */
 
 /*
  * Two snapshots as one strip. Nothing here is driven per frame: the direction,
- * the gap, the lift and the spring curve are written as custom properties once
- * before the snapshot, and the browser runs the keyframes off them.
+ * the gap, the lift, the spring curve and the rest are written as custom
+ * properties once before the snapshot, and the browser runs the keyframes off
+ * them. The slide lives on `translate` and the bank on `transform`, so each
+ * page leans about its own centre and is then carried across as a whole.
  */
 
 :root,
 .spaces-dark {
   --spaces-backdrop: #0d0d10;
+  --spaces-glow: rgba(255, 255, 255, 0.12);
 }
 
 .spaces-light {
   --spaces-backdrop: #e8e5de;
+  --spaces-glow: rgba(0, 0, 0, 0.08);
 }
 
-/* The gap and the lifted edges show this, not the live page underneath. */
+/*
+ * The gap and the lifted edges show this, not the live page underneath. A soft
+ * light on it slides the same way as the strip at a fraction of the speed, so
+ * the gap has something behind it.
+ */
 .vt-spaces::view-transition {
-  background: var(--spaces-backdrop);
+  background-color: var(--spaces-backdrop);
+  background-image: radial-gradient(45% 70% at 50% 45%, var(--spaces-glow), transparent 70%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: spaces-light var(--vt-duration, 0.55s) var(--spaces-ease, cubic-bezier(0.2, 0, 0, 1)) both;
 }
 
 /* The lift lives on the group, so both pages shrink about the same centre. */
@@ -717,27 +730,35 @@
  * incoming page, stacked above, overtakes it.
  */
 .vt-spaces::view-transition-old(root) {
-  animation: spaces-out var(--vt-duration, 0.55s) var(--spaces-ease, cubic-bezier(0.2, 0, 0, 1)) both;
+  animation:
+    spaces-out var(--vt-duration, 0.55s) var(--spaces-ease, cubic-bezier(0.2, 0, 0, 1)) both,
+    spaces-card var(--vt-duration, 0.55s) ease-in-out both,
+    spaces-bank var(--vt-duration, 0.55s) ease-in-out both;
   z-index: 1;
 }
 
+/* The incoming page starts a frame late, so the gap opens at launch and closes on landing. */
 .vt-spaces::view-transition-new(root) {
-  animation: spaces-in var(--vt-duration, 0.55s) var(--spaces-ease, cubic-bezier(0.2, 0, 0, 1)) both;
+  animation:
+    spaces-in var(--vt-duration, 0.55s) var(--spaces-ease, cubic-bezier(0.2, 0, 0, 1)) both,
+    spaces-card var(--vt-duration, 0.55s) ease-in-out both,
+    spaces-bank var(--vt-duration, 0.55s) ease-in-out both;
+  animation-delay: var(--spaces-lag, 16ms), var(--spaces-lag, 16ms), var(--spaces-lag, 16ms);
   z-index: 2;
 }
 
 @keyframes spaces-out {
   to {
-    transform: translateX(calc(var(--spaces-dir, -1) * (100% + var(--spaces-gap, 12px)) * var(--spaces-stay, 1)));
+    translate: calc(var(--spaces-dir, -1) * (100% + var(--spaces-gap, 12px)) * var(--spaces-stay, 1)) 0;
   }
 }
 
 @keyframes spaces-in {
   from {
-    transform: translateX(calc(-1 * var(--spaces-dir, -1) * (100% + var(--spaces-gap, 12px))));
+    translate: calc(-1 * var(--spaces-dir, -1) * (100% + var(--spaces-gap, 12px))) 0;
   }
   to {
-    transform: none;
+    translate: 0 0;
   }
 }
 
@@ -749,7 +770,25 @@
   100% { transform: scale(1); }
 }
 
+/* Cards while in flight, sheets once landed. */
+@keyframes spaces-card {
+  0%, 100% { border-radius: 0; }
+  18%, 55% { border-radius: var(--spaces-radius, 16px); }
+}
+
+/* Each page leans into the direction of travel about its own centre: the trailing edge comes forward, like a card flicked across a table. */
+@keyframes spaces-bank {
+  0%, 100% { transform: perspective(1200px) rotateY(0deg); }
+  18%, 55% { transform: perspective(1200px) rotateY(calc(var(--spaces-dir, -1) * var(--spaces-bank, 5deg))); }
+}
+
+@keyframes spaces-light {
+  from { background-position-x: calc(50% + var(--spaces-dir, -1) * 15%); }
+  to   { background-position-x: calc(50% - var(--spaces-dir, -1) * 15%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .vt-spaces::view-transition,
   .vt-spaces::view-transition-group(root),
   .vt-spaces::view-transition-old(root),
   .vt-spaces::view-transition-new(root) {

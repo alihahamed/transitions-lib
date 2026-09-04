@@ -84,7 +84,10 @@ export default function RootLayout({ children }) {
       { name: 'lift', type: 'number', def: '4', description: 'How far the pages shrink while in flight, in percent. 0 keeps them flat on the surface.' },
       { name: 'parallax', type: 'number', def: '0', description: 'How far short of the full distance the outgoing page travels, 0 to 1. Above 0 it is overtaken rather than carried, and the gap goes.' },
       { name: 'bounce', type: 'number', def: '0', description: 'Overshoot on landing, 0 to 0.4. 0 is critically damped, the way macOS does it.' },
-      { name: 'backdrop', type: '"dark" | "light" | "custom"', def: '"dark"', description: 'What shows in the gap and around the lifted pages. "custom" leaves --spaces-backdrop to you.' },
+      { name: 'radius', type: 'number', def: '16', description: 'Corner radius the pages take on while lifted, in px. They square up as they land.' },
+      { name: 'bank', type: 'number', def: '5', description: 'Degrees each page leans into the direction of travel while in flight, about its own centre.' },
+      { name: 'lag', type: 'number', def: '16', description: 'Milliseconds the incoming page trails the outgoing one. Both travel the full distance, so the gap opens at launch and closes on landing.' },
+      { name: 'backdrop', type: '"dark" | "light" | "custom"', def: '"dark"', description: 'What shows in the gap and around the lifted pages, with a soft light that moves at a fraction of their speed. "custom" leaves --spaces-backdrop and --spaces-glow to you.' },
     ],
     controls: [
       { kind: 'select', key: 'backdrop', label: 'Backdrop', options: ['dark', 'light'], def: 'dark' },
@@ -94,6 +97,9 @@ export default function RootLayout({ children }) {
       { kind: 'range', key: 'lift', label: 'Lift', min: 0, max: 10, step: 0.5, def: 4 },
       { kind: 'range', key: 'parallax', label: 'Parallax', min: 0, max: 1, step: 0.05, def: 0 },
       { kind: 'range', key: 'bounce', label: 'Bounce', min: 0, max: 0.4, step: 0.02, def: 0 },
+      { kind: 'range', key: 'radius', label: 'Radius', min: 0, max: 40, step: 2, def: 16 },
+      { kind: 'range', key: 'bank', label: 'Bank', min: 0, max: 12, step: 0.5, def: 5 },
+      { kind: 'range', key: 'lag', label: 'Lag', min: 0, max: 80, step: 4, def: 16 },
       { kind: 'range', key: 'speed', label: 'Speed', min: 0.4, max: 2.5, step: 0.05, def: 1 },
     ],
     notes: [
