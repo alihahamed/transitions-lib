@@ -49,7 +49,7 @@ const DEFAULTS: SlateOptions = {
   stick: 12,
   finish: 'striped',
   hinge: 'left',
-  duration: 0.4,
+  duration: 0.5,
   hold: 0.08,
   speed: 1,
   palette: 'ink',
@@ -65,6 +65,20 @@ const open = (o: SlateOptions) => (o.hinge === 'left' ? -o.angle : o.angle)
 
 /** Parked below the frame and hidden, so the stick's upward overrun is never seen at rest. */
 const park = (rig: HTMLElement) => gsap.set(rig, { yPercent: 100, visibility: 'hidden' })
+
+/**
+ * How far below the frame the slate has to be for all of it to be out of
+ * shot, as a yPercent. One screen height clears the board, but the open stick
+ * stands well above the board at its far end — a screen width times the sine
+ * of the angle — so the whole thing has to start that much lower, and the tip
+ * of the stick is the first thing to come into view.
+ */
+const clearance = (rig: HTMLElement, o: SlateOptions) => {
+  const w = rig.clientWidth
+  const h = rig.clientHeight
+  const tip = w * Math.sin((o.angle * Math.PI) / 180) + (o.stick / 100 + 0.02) * h
+  return 100 + (tip / h) * 100
+}
 
 /**
  * The off-square pose the slate holds while it is in the hand: leaning away at
@@ -118,7 +132,7 @@ export const SlateTransition = createTransition<SlateOptions>({
 
     gsap.set(rig, {
       visibility: 'visible',
-      yPercent: 100,
+      yPercent: clearance(rig, o),
       transformPerspective: 800,
       transformOrigin: '50% 100%',
       ...held(o, 5),
@@ -172,7 +186,7 @@ export const SlateTransition = createTransition<SlateOptions>({
 
     // Pull-out begins while the stick is still lifting: it drops, rolls the
     // other way and leans off as the hand takes it, slow then away.
-    tl.to(rig, { yPercent: 100, ...held(o, -4), duration: d, ease: 'power3.in' }, o.hold + 0.16)
+    tl.to(rig, { yPercent: clearance(rig, o), ...held(o, -4), duration: d, ease: 'power3.in' }, o.hold + 0.16)
 
     tl.timeScale(o.speed)
     return () => tl.kill()
