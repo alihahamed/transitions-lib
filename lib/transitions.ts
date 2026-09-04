@@ -108,7 +108,7 @@ export default function RootLayout({ children }) {
       'The preview knows its two pages are in a row, so page two arrives from the right and home from the left.',
       'Browser back and forward are not animated \u2014 history navigation snaps.',
     ],
-    ready: false,
+    ready: true,
   },
   {
     slug: 'slate',
