@@ -4,10 +4,36 @@
   "homepage": "https://github.com/alihahamed/transitions-lib",
   "items": [
     {
+      "name": "slate",
+      "type": "registry:component",
+      "title": "Slate",
+      "description": "A clapperboard rises over the page, claps, and is pulled away from the next one. The stick opens first and the new page shows in the gap. GSAP.",
+      "dependencies": [
+        "gsap",
+        "next-transition-router"
+      ],
+      "files": [
+        {
+          "path": "registry/transitions/slate.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transition-core.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transitions.css",
+          "type": "registry:file",
+          "target": "@components/transitions.css"
+        }
+      ],
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { SlateTransition } from \"@/components/slate\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <SlateTransition>{children}</SlateTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nA clapperboard rises into frame from the bottom with its stick open and\ncovers the page. The stick claps shut — that is the moment the route swaps\nbehind it. The slate settles, the stick lifts and the new page shows in the\ngap above the board, then the whole slate is pulled down out of frame.\nNothing fades. angle sets how far the stick opens, stick its height in vh,\nhinge which end it pivots on, settle how far the slate drops after the clap,\ndrift the sideways arc of the hand, and shake the jolt at the impact.\n\nColour: two palettes ship as classes — palette=\"ink\" (default, black board\nwith white stripes) and \"chalk\" (the reverse). For anything else pass\npalette=\"custom\" and set --slate-board and --slate-stripe yourself in\ncomponents/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~0.9s)."
+    },
+    {
       "name": "dither",
       "type": "registry:component",
       "title": "Dither",
-      "description": "The page dissolves through an ordered Bayer dither \u2014 dots, checkerboard, weave, solid \u2014 and the next page is revealed the same way in reverse. Drawn on a canvas. GSAP.",
+      "description": "The page dissolves through an ordered Bayer dither — dots, checkerboard, weave, solid — and the next page is revealed the same way in reverse. Drawn on a canvas. GSAP.",
       "dependencies": [
         "gsap",
         "next-transition-router"
@@ -27,7 +53,7 @@
           "target": "@components/transitions.css"
         }
       ],
-      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { DitherTransition } from \"@/components/dither\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <DitherTransition>{children}</DitherTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nA grid of square cells fills the screen in Bayer order \u2014 a sparse lattice, then\nthe checkerboard, then the weave, then solid \u2014 and clears in reverse to reveal\nthe next page. Each cell pops; nothing fades. cells sets how many across\n(rows follow the aspect ratio), matrix picks the Bayer size: 4 is the classic\nconsole fade, 8 is smoother, 2 is four blunt stages.\n\nColour: four palettes ship as classes \u2014 palette=\"ink\" (default), \"paper\",\n\"blueprint\" or \"ember\". For anything else pass palette=\"custom\" and set\n--dither-ground yourself in components/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~0.5s)."
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { DitherTransition } from \"@/components/dither\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <DitherTransition>{children}</DitherTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nA grid of square cells fills the screen in Bayer order — a sparse lattice, then\nthe checkerboard, then the weave, then solid — and clears in reverse to reveal\nthe next page. Each cell pops; nothing fades. cells sets how many across\n(rows follow the aspect ratio), matrix picks the Bayer size: 4 is the classic\nconsole fade, 8 is smoother, 2 is four blunt stages.\n\nColour: four palettes ship as classes — palette=\"ink\" (default), \"paper\",\n\"blueprint\" or \"ember\". For anything else pass palette=\"custom\" and set\n--dither-ground yourself in components/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~0.5s)."
     },
     {
       "name": "concertina",
@@ -53,13 +79,13 @@
           "target": "@components/transitions.css"
         }
       ],
-      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { ConcertinaTransition } from \"@/components/concertina\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <ConcertinaTransition>{children}</ConcertinaTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nThe page collapses into one bar of a row, the row slides to the slot that\nbelongs to the page you are going to, and that bar opens back out. The slot\ncomes from a hash of the path, so a page always lands on the same bar with\nnothing to configure.\n\nColour: four palettes ship as classes \u2014 palette=\"mono\" (default), \"inverse\",\n\"ember\" or \"pine\". For anything else pass palette=\"custom\" and set --cc-ground\nand --cc-slat yourself in components/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~1s)."
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { ConcertinaTransition } from \"@/components/concertina\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <ConcertinaTransition>{children}</ConcertinaTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nThe page collapses into one bar of a row, the row slides to the slot that\nbelongs to the page you are going to, and that bar opens back out. The slot\ncomes from a hash of the path, so a page always lands on the same bar with\nnothing to configure.\n\nColour: four palettes ship as classes — palette=\"mono\" (default), \"inverse\",\n\"ember\" or \"pine\". For anything else pass palette=\"custom\" and set --cc-ground\nand --cc-slat yourself in components/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~1s)."
     },
     {
       "name": "riser",
       "type": "registry:component",
       "title": "Riser",
-      "description": "The outgoing page drops back into depth while the incoming page is unmasked over it. No dependencies and no JavaScript animating anything \u2014 the stylesheet drives it.",
+      "description": "The outgoing page drops back into depth while the incoming page is unmasked over it. No dependencies and no JavaScript animating anything — the stylesheet drives it.",
       "dependencies": [],
       "files": [
         {
@@ -76,13 +102,13 @@
           "target": "@components/transitions.css"
         }
       ],
-      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { RiserTransition } from \"@/components/riser\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <RiserTransition direction=\"up\">{children}</RiserTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s and <a>s are intercepted automatically. New tabs,\nmodified clicks, downloads, external links and same-page hashes are left alone.\n\ndirection takes up, down, left or right \u2014 the incoming page is unmasked from\nthat edge and the outgoing page recedes the opposite way.\n\nNeeds the View Transitions API: Chrome 111+, Safari 18+, Firefox 132+. Older\nbrowsers navigate normally with no animation."
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { RiserTransition } from \"@/components/riser\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <RiserTransition direction=\"up\">{children}</RiserTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s and <a>s are intercepted automatically. New tabs,\nmodified clicks, downloads, external links and same-page hashes are left alone.\n\ndirection takes up, down, left or right — the incoming page is unmasked from\nthat edge and the outgoing page recedes the opposite way.\n\nNeeds the View Transitions API: Chrome 111+, Safari 18+, Firefox 132+. Older\nbrowsers navigate normally with no animation."
     },
     {
       "name": "film-burn",
       "type": "registry:component",
       "title": "Film Burn",
-      "description": "The page catches alight and the fire burns straight through it to the page underneath. One continuous burn, no dependencies \u2014 it rides the browser's View Transitions API.",
+      "description": "The page catches alight and the fire burns straight through it to the page underneath. One continuous burn, no dependencies — it rides the browser's View Transitions API.",
       "dependencies": [],
       "files": [
         {
@@ -99,7 +125,7 @@
           "target": "@components/transitions.css"
         }
       ],
-      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { FilmBurnTransition } from \"@/components/film-burn\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <FilmBurnTransition>{children}</FilmBurnTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s and <a>s are intercepted automatically. New tabs,\nmodified clicks, downloads, external links and same-page hashes are left alone.\n\nThe fire starts from a random corner each navigation. Pass origin=\"top-left\"\n(or top-right, bottom-left, bottom-right, center) to fix it.\n\nColour: four presets ship as classes \u2014 palette=\"ember\" (default), \"magnesium\",\n\"cold\" or \"toxic\". For anything else pass palette=\"custom\" and set\n--burn-core, --burn-hot, --burn-mid and --burn-edge yourself.\n\nNeeds the View Transitions API: Chrome 111+, Safari 18+, Firefox 132+. Older\nbrowsers navigate normally with no animation \u2014 nothing breaks, but there is no\nfallback effect."
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { FilmBurnTransition } from \"@/components/film-burn\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <FilmBurnTransition>{children}</FilmBurnTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s and <a>s are intercepted automatically. New tabs,\nmodified clicks, downloads, external links and same-page hashes are left alone.\n\nThe fire starts from a random corner each navigation. Pass origin=\"top-left\"\n(or top-right, bottom-left, bottom-right, center) to fix it.\n\nColour: four presets ship as classes — palette=\"ember\" (default), \"magnesium\",\n\"cold\" or \"toxic\". For anything else pass palette=\"custom\" and set\n--burn-core, --burn-hot, --burn-mid and --burn-edge yourself.\n\nNeeds the View Transitions API: Chrome 111+, Safari 18+, Firefox 132+. Older\nbrowsers navigate normally with no animation — nothing breaks, but there is no\nfallback effect."
     },
     {
       "name": "zipper",
@@ -133,7 +159,7 @@
           "target": "@components/transitions.css"
         }
       ],
-      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { ZipperTransition } from \"@/components/zipper\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <ZipperTransition>{children}</ZipperTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nColour: five presets ship as classes \u2014 put zip-steel, zip-brass, zip-gunmetal\nor zip-copper on any ancestor of the transition. For anything else, set\n--zip-metal-hi/-metal/-mid/-lo/-edge and --zip-tape/-lo yourself in\ncomponents/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~1.5s)."
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { ZipperTransition } from \"@/components/zipper\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <ZipperTransition>{children}</ZipperTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nColour: five presets ship as classes — put zip-steel, zip-brass, zip-gunmetal\nor zip-copper on any ancestor of the transition. For anything else, set\n--zip-metal-hi/-metal/-mid/-lo/-edge and --zip-tape/-lo yourself in\ncomponents/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~1.5s)."
     },
     {
       "name": "crayon",
