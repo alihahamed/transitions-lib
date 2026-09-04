@@ -564,3 +564,91 @@
 .dither-paper     { --dither-ground: #f2efe8; }
 .dither-blueprint { --dither-ground: #1f4470; }
 .dither-ember     { --dither-ground: #170a04; }
+
+/* ---------- slate ---------- */
+
+/*
+ * Three pieces and nothing but transforms: the rig rises and is pulled out,
+ * the stick rotates on its hinge, the board just rides along. The board
+ * overruns the bottom so the rise's overshoot never shows an edge.
+ */
+
+:root {
+  --slate-board: #141414;
+  --slate-stripe: #f2efe8;
+  --slate-stick: 18vh;
+}
+
+.slate {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+}
+
+.slate-rig {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.slate-stick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Overruns the top by just enough to hide the impact dip; any more shows once the slate is pulled down. */
+  top: -2vh;
+  height: calc(var(--slate-stick) + 2vh);
+  background: var(--slate-board);
+  transform-origin: 0% 100%;
+  will-change: transform;
+  /* Lies on the board when shut; hangs over it when open. */
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.slate-hinge-right .slate-stick {
+  transform-origin: 100% 100%;
+}
+
+.slate-board {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--slate-stick);
+  bottom: -30vh;
+  background: var(--slate-board);
+  /* The board sits above the page; the shadow into the gap says so. */
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.slate-lip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--slate-stick);
+}
+
+/* Stripes lean opposite ways on the two halves, meeting as chevrons at the seam. */
+.slate-striped .slate-stick {
+  background: repeating-linear-gradient(
+    -60deg,
+    var(--slate-stripe) 0 calc(var(--slate-stick) * 0.5),
+    var(--slate-board) 0 calc(var(--slate-stick) * 1)
+  );
+}
+
+.slate-striped .slate-lip {
+  background: repeating-linear-gradient(
+    60deg,
+    var(--slate-stripe) 0 calc(var(--slate-stick) * 0.5),
+    var(--slate-board) 0 calc(var(--slate-stick) * 1)
+  );
+}
+
+.slate-ink   { --slate-board: #141414; --slate-stripe: #f2efe8; }
+.slate-chalk { --slate-board: #f2efe8; --slate-stripe: #141414; }
+.slate-ember { --slate-board: #170a04; --slate-stripe: #ff9d3c; }
+
+@media (prefers-reduced-motion: reduce) {
+  .slate { display: none }
+}

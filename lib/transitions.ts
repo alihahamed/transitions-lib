@@ -48,6 +48,60 @@ export type TransitionMeta = {
 
 export const transitions: TransitionMeta[] = [
   {
+    slug: 'slate',
+    name: 'Slate',
+    tagline: 'A clapperboard rises over the page, claps, and is pulled away from the next one.',
+    description:
+      'A clapperboard rises into frame from the bottom with its stick open and covers the page. The stick claps shut \u2014 that is the moment the screen is fully covered, and the route swaps behind it. The stick lifts again and the new page shows in the gap it leaves above the board, then the whole slate is pulled down out of frame. Nothing fades; every reveal is a piece of board moving. The motion is written as a hand would do it: the rise overshoots a hair and settles, the stick falls under gravity and rebounds once, the slate dips on the impact, and the pull-out starts slow and accelerates away.',
+    engine: 'GSAP',
+    dependencies: ['gsap', 'next-transition-router'],
+    accent: ['#141414', '#f2efe8', '#ff9d3c'],
+    duration: 1500,
+    usage: `import { SlateTransition } from '@/components/slate'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <SlateTransition>{children}</SlateTransition>
+      </body>
+    </html>
+  )
+}`,
+    swatches: [
+      { name: 'ink', from: '#141414', to: '#f2efe8' },
+      { name: 'chalk', from: '#f2efe8', to: '#141414' },
+      { name: 'ember', from: '#170a04', to: '#ff9d3c' },
+    ],
+    props: [
+      { name: 'children', type: 'ReactNode', def: '\u2014', description: 'Your app. Wrap the contents of <body>. (Required)' },
+      { name: 'angle', type: 'number', def: '20', description: 'Degrees the stick opens.' },
+      { name: 'stick', type: 'number', def: '18', description: 'Height of the stick, in vh. The lip below it on the board is the same height.' },
+      { name: 'finish', type: '"striped" | "plain"', def: '"striped"', description: 'Diagonal stripes on the stick and lip, or flat board.' },
+      { name: 'hinge', type: '"left" | "right"', def: '"left"', description: 'Which end the stick pivots on.' },
+      { name: 'duration', type: 'number', def: '0.4', description: 'Seconds the slate takes to rise into frame, and to be pulled out.' },
+      { name: 'hold', type: 'number', def: '0.08', description: 'Seconds the stick stays shut after the route swaps, before it lifts.' },
+      { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole timeline. Above 1 is faster.' },
+      { name: 'palette', type: '"ink" | "chalk" | "ember" | "custom"', def: '"ink"', description: 'Board and stripe colours. "custom" applies no preset, leaving --slate-board and --slate-stripe to you.' },
+    ],
+    controls: [
+      { kind: 'select', key: 'palette', label: 'Palette', options: ['ink', 'chalk', 'ember'], def: 'ink' },
+      { kind: 'select', key: 'finish', label: 'Finish', options: ['striped', 'plain'], def: 'striped' },
+      { kind: 'select', key: 'hinge', label: 'Hinge', options: ['left', 'right'], def: 'left' },
+      { kind: 'range', key: 'angle', label: 'Angle', min: 6, max: 40, step: 1, def: 20 },
+      { kind: 'range', key: 'stick', label: 'Stick height', min: 8, max: 30, step: 1, def: 18 },
+      { kind: 'range', key: 'duration', label: 'Duration', min: 0.2, max: 1, step: 0.05, def: 0.4 },
+      { kind: 'range', key: 'hold', label: 'Hold', min: 0, max: 0.6, step: 0.02, def: 0.08 },
+      { kind: 'range', key: 'speed', label: 'Speed', min: 0.4, max: 2.5, step: 0.05, def: 1 },
+    ],
+    notes: [
+      'The clap is the cut. The screen is only fully covered for the beat the stick is shut, and that is when the route swaps.',
+      'The stick opens far enough that its tip leaves the frame, the way a real clapstick swings well clear of the board. The gap above the board is where the new page is first seen.',
+      'Browser back and forward are not animated \u2014 history navigation snaps.',
+    ],
+    ready: false,
+  },
+  {
     slug: 'dither',
     name: 'Dither',
     tagline: 'The page dissolves through an ordered dither \u2014 dots, checker, weave, solid.',
