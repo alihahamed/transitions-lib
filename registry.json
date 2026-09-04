@@ -4,6 +4,29 @@
   "homepage": "https://github.com/alihahamed/transitions-lib",
   "items": [
     {
+      "name": "spaces",
+      "type": "registry:component",
+      "title": "Spaces",
+      "description": "The pages slide across as one strip, the way macOS switches desktops: a spring, a gap, a lift, and direction from your route order. No dependencies — the stylesheet drives it.",
+      "dependencies": [],
+      "files": [
+        {
+          "path": "registry/transitions/spaces.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/view-transition-core.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transitions.css",
+          "type": "registry:file",
+          "target": "@components/transitions.css"
+        }
+      ],
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { SpacesTransition } from \"@/components/spaces\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <SpacesTransition routes={[\"/\", \"/work\", \"/about\"]}>{children}</SpacesTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s and <a>s are intercepted automatically.\n\nThe two pages travel as one strip with a thin gap between them, on a real\ndamped spring: fast out of the gate, a long soft landing. As they move they\nlift off the surface, take on rounded corners and lean into the direction of\ntravel, and settle back flat and square as they land. The incoming page trails\nby a frame so the gap breathes.\n\nroutes is your pages in order, left to right. A navigation to a page further\nalong slides left; further back slides right. Anything not listed uses\ndirection. gap, lift, radius, bank, lag and bounce each tune one part of the\nmotion and can be zeroed.\n\nColour: backdrop=\"dark\" (default) or \"light\" sets what shows in the gap. For\nanything else pass backdrop=\"custom\" and set --spaces-backdrop and\n--spaces-glow yourself in components/transitions.css.\n\nRequires the View Transitions API (Chrome 111+, Safari 18+, Firefox 132+).\nOlder browsers navigate normally with no animation. Browser back/forward is\nnot animated."
+    },
+    {
       "name": "slate",
       "type": "registry:component",
       "title": "Slate",
