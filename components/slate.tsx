@@ -38,6 +38,8 @@ export type SlateOptions = {
   duration: number
   /** Seconds the stick stays shut after the route swaps, before it lifts. */
   hold: number
+  /** How far the slate drops after the clap, in vh, bringing the stick's top edge into frame. 0 keeps it flush. */
+  settle: number
   /** Multiplies the whole timeline. Above 1 is faster. */
   speed: number
   /** Board and stripe colours. "custom" applies no preset, leaving --slate-board and --slate-stripe to you. */
@@ -51,6 +53,7 @@ const DEFAULTS: SlateOptions = {
   hinge: 'left',
   duration: 0.5,
   hold: 0.08,
+  settle: 7,
   speed: 1,
   palette: 'ink',
 }
@@ -63,8 +66,15 @@ const parts = (overlay: HTMLDivElement) => ({
 /** Open is a lift of the far end: anticlockwise on a left hinge, clockwise on a right one. */
 const open = (o: SlateOptions) => (o.hinge === 'left' ? -o.angle : o.angle)
 
-/** Parked below the frame and hidden, so the stick's upward overrun is never seen at rest. */
+/** Parked below the frame and hidden. */
 const park = (rig: HTMLElement) => gsap.set(rig, { yPercent: 100, visibility: 'hidden' })
+
+/**
+ * Where the slate sits for the clap, as a yPercent: a hair above flush, so the
+ * impact dip lands at flush rather than below it and the top edge of the stick
+ * never uncovers the page while the screen is meant to be covered.
+ */
+const SEAT = -0.8
 
 /**
  * How far below the frame the slate has to be for all of it to be out of
@@ -76,7 +86,7 @@ const park = (rig: HTMLElement) => gsap.set(rig, { yPercent: 100, visibility: 'h
 const clearance = (rig: HTMLElement, o: SlateOptions) => {
   const w = rig.clientWidth
   const h = rig.clientHeight
-  const tip = w * Math.sin((o.angle * Math.PI) / 180) + (o.stick / 100 + 0.02) * h
+  const tip = w * Math.sin((o.angle * Math.PI) / 180) + (o.stick / 100) * h
   return 100 + (tip / h) * 100
 }
 
@@ -141,8 +151,8 @@ export const SlateTransition = createTransition<SlateOptions>({
 
     // Rise: a reach, bell-shaped velocity, squaring up on the way, a hair too
     // high, then set down.
-    tl.to(rig, { yPercent: -1.5, ...SQUARE, duration: d, ease: 'power2.inOut' })
-    tl.to(rig, { yPercent: 0, duration: 0.14, ease: 'power2.inOut' })
+    tl.to(rig, { yPercent: SEAT - 1.5, ...SQUARE, duration: d, ease: 'power2.inOut' })
+    tl.to(rig, { yPercent: SEAT, duration: 0.14, ease: 'power2.inOut' })
 
     // Clap: gravity and a flick of the wrist, then one rebound.
     tl.to(stick, { rotation: 0, duration: 0.15, ease: 'power3.in' }, '>+0.04')
@@ -151,8 +161,8 @@ export const SlateTransition = createTransition<SlateOptions>({
     tl.to(stick, { rotation: 0, duration: 0.07, ease: 'power1.in' })
 
     // The hand takes the hit: the whole slate dips and comes back.
-    tl.to(rig, { yPercent: 0.8, duration: 0.05, ease: 'power2.out' }, 'impact')
-    tl.to(rig, { yPercent: 0, duration: 0.22, ease: 'power2.out' }, 'impact+=0.05')
+    tl.to(rig, { yPercent: 0, duration: 0.05, ease: 'power2.out' }, 'impact')
+    tl.to(rig, { yPercent: SEAT, duration: 0.22, ease: 'power2.out' }, 'impact+=0.05')
 
     tl.timeScale(o.speed)
     return () => tl.kill()
@@ -174,19 +184,24 @@ export const SlateTransition = createTransition<SlateOptions>({
 
     gsap.set(rig, {
       visibility: 'visible',
-      yPercent: 0,
+      yPercent: SEAT,
       transformPerspective: 800,
       transformOrigin: '50% 100%',
       ...SQUARE,
     })
     gsap.set(stick, { rotation: 0 })
 
-    // Lift: the thumb flicks it open, soft stop with a touch of overshoot.
-    tl.to(stick, { rotation: open(o), duration: 0.3, ease: 'back.out(1.5)' }, o.hold)
+    // The hand relaxes after the hit: the slate settles down a few vh and the
+    // top edge of the stick comes into frame, with the new page above it.
+    tl.to(rig, { yPercent: o.settle, duration: 0.24, ease: 'power2.out' }, o.hold)
 
-    // Pull-out begins while the stick is still lifting: it drops, rolls the
-    // other way and leans off as the hand takes it, slow then away.
-    tl.to(rig, { yPercent: clearance(rig, o), ...held(o, -4), duration: d, ease: 'power3.in' }, o.hold + 0.16)
+    // Lift: the thumb flicks it open, soft stop with a touch of overshoot.
+    tl.to(stick, { rotation: open(o), duration: 0.3, ease: 'back.out(1.5)' }, o.hold + 0.1)
+
+    // Pull-out, once it has settled and while the stick is still lifting: it
+    // drops, rolls the other way and leans off as the hand takes it, slow
+    // then away.
+    tl.to(rig, { yPercent: clearance(rig, o), ...held(o, -4), duration: d, ease: 'power3.in' }, o.hold + 0.3)
 
     tl.timeScale(o.speed)
     return () => tl.kill()

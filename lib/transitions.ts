@@ -81,6 +81,7 @@ export default function RootLayout({ children }) {
       { name: 'hinge', type: '"left" | "right"', def: '"left"', description: 'Which end the stick pivots on.' },
       { name: 'duration', type: 'number', def: '0.5', description: 'Seconds the slate takes to rise into frame, and to be pulled out.' },
       { name: 'hold', type: 'number', def: '0.08', description: 'Seconds the stick stays shut after the route swaps, before it lifts.' },
+      { name: 'settle', type: 'number', def: '7', description: 'How far the slate drops after the clap, in vh, as the hand relaxes \u2014 which brings the top edge of the stick into frame with the new page above it. 0 keeps it flush.' },
       { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole timeline. Above 1 is faster.' },
       { name: 'palette', type: '"ink" | "chalk" | "ember" | "custom"', def: '"ink"', description: 'Board and stripe colours. "custom" applies no preset, leaving --slate-board and --slate-stripe to you.' },
     ],
@@ -92,6 +93,7 @@ export default function RootLayout({ children }) {
       { kind: 'range', key: 'stick', label: 'Stick height', min: 6, max: 24, step: 1, def: 12 },
       { kind: 'range', key: 'duration', label: 'Duration', min: 0.2, max: 1.2, step: 0.05, def: 0.5 },
       { kind: 'range', key: 'hold', label: 'Hold', min: 0, max: 0.6, step: 0.02, def: 0.08 },
+      { kind: 'range', key: 'settle', label: 'Settle', min: 0, max: 16, step: 1, def: 7 },
       { kind: 'range', key: 'speed', label: 'Speed', min: 0.4, max: 2.5, step: 0.05, def: 1 },
     ],
     notes: [

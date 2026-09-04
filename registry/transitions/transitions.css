@@ -595,9 +595,8 @@
   position: absolute;
   left: 0;
   right: 0;
-  /* Overruns the top by just enough to hide the impact dip; any more shows once the slate is pulled down. */
-  top: -2vh;
-  height: calc(var(--slate-stick) + 2vh);
+  top: 0;
+  height: var(--slate-stick);
   background: var(--slate-board);
   transform-origin: 0% 100%;
   will-change: transform;
