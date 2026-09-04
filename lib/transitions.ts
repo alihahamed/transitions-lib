@@ -48,6 +48,63 @@ export type TransitionMeta = {
 
 export const transitions: TransitionMeta[] = [
   {
+    slug: 'spaces',
+    name: 'Spaces',
+    tagline: 'The pages slide across as one strip, the way macOS switches desktops.',
+    description:
+      'The two pages are one rigid strip with a thin gap between them, and the strip slides across on a spring: fast out of the gate, a long soft landing, no overshoot unless you ask for one. As it starts to move both pages lift off the surface a little and cast a shadow onto the backdrop, and they settle back down as they land. Direction comes from where you are going \u2014 give it the order of your routes and a page further along slides in from the right, a page further back from the left, as though they really were laid out in a row. Zero dependencies: the browser runs it off the stylesheet, and the spring is written as a CSS linear() easing before the snapshot is taken.',
+    engine: 'Native',
+    dependencies: [],
+    accent: ['#0d0d10', '#e4dccb', '#c6d5de'],
+    duration: 550,
+    requires:
+      'The View Transitions API \u2014 Chrome 111+, Safari 18+, Firefox 132+. Older browsers navigate normally with no animation. Nothing breaks, but there is no fallback effect.',
+    usage: `import { SpacesTransition } from '@/components/spaces'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <SpacesTransition routes={['/', '/work', '/about']}>{children}</SpacesTransition>
+      </body>
+    </html>
+  )
+}`,
+    swatches: [
+      { name: 'dark', from: '#0d0d10', to: '#2a2a30' },
+      { name: 'light', from: '#e8e5de', to: '#cfcabf' },
+    ],
+    props: [
+      { name: 'children', type: 'ReactNode', def: '\u2014', description: 'Your app. Wrap the contents of <body>. (Required)' },
+      { name: 'routes', type: 'string[]', def: '[]', description: 'Your routes in order, left to right. A navigation to a route further along slides left; further back slides right. Nested paths belong to their nearest listed ancestor.' },
+      { name: 'direction', type: '"left" | "right"', def: '"left"', description: 'Which way the pages travel when the destination is not in routes.' },
+      { name: 'duration', type: 'number', def: '0.55', description: 'Seconds the switch takes, landing included. Most of the distance is covered in the first third; the rest is the landing.' },
+      { name: 'speed', type: 'number', def: '1', description: 'Divides the duration. Above 1 is faster.' },
+      { name: 'gap', type: 'number', def: '12', description: 'Space between the two pages while they travel, in px.' },
+      { name: 'lift', type: 'number', def: '4', description: 'How far the pages shrink while in flight, in percent. 0 keeps them flat on the surface.' },
+      { name: 'parallax', type: 'number', def: '0', description: 'How far short of the full distance the outgoing page travels, 0 to 1. Above 0 it is overtaken rather than carried, and the gap goes.' },
+      { name: 'bounce', type: 'number', def: '0', description: 'Overshoot on landing, 0 to 0.4. 0 is critically damped, the way macOS does it.' },
+      { name: 'backdrop', type: '"dark" | "light" | "custom"', def: '"dark"', description: 'What shows in the gap and around the lifted pages. "custom" leaves --spaces-backdrop to you.' },
+    ],
+    controls: [
+      { kind: 'select', key: 'backdrop', label: 'Backdrop', options: ['dark', 'light'], def: 'dark' },
+      { kind: 'select', key: 'direction', label: 'Fallback direction', options: ['left', 'right'], def: 'left' },
+      { kind: 'range', key: 'duration', label: 'Duration', min: 0.25, max: 1.2, step: 0.05, def: 0.55 },
+      { kind: 'range', key: 'gap', label: 'Gap', min: 0, max: 48, step: 2, def: 12 },
+      { kind: 'range', key: 'lift', label: 'Lift', min: 0, max: 10, step: 0.5, def: 4 },
+      { kind: 'range', key: 'parallax', label: 'Parallax', min: 0, max: 1, step: 0.05, def: 0 },
+      { kind: 'range', key: 'bounce', label: 'Bounce', min: 0, max: 0.4, step: 0.02, def: 0 },
+      { kind: 'range', key: 'speed', label: 'Speed', min: 0.4, max: 2.5, step: 0.05, def: 1 },
+    ],
+    notes: [
+      'No dependencies and no JavaScript animating anything. The direction, gap, lift and spring are written as custom properties once per navigation and the stylesheet does the rest.',
+      'The spring is a real damped spring, simulated and written out as a CSS linear() easing, not a bezier approximation.',
+      'The preview knows its two pages are in a row, so page two arrives from the right and home from the left.',
+      'Browser back and forward are not animated \u2014 history navigation snaps.',
+    ],
+    ready: false,
+  },
+  {
     slug: 'slate',
     name: 'Slate',
     tagline: 'A clapperboard rises over the page, claps, and is pulled away from the next one.',

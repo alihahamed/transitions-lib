@@ -673,3 +673,86 @@
 @media (prefers-reduced-motion: reduce) {
   .slate { display: none }
 }
+
+/* ---------- spaces ---------- */
+
+/*
+ * Two snapshots as one strip. Nothing here is driven per frame: the direction,
+ * the gap, the lift and the spring curve are written as custom properties once
+ * before the snapshot, and the browser runs the keyframes off them.
+ */
+
+:root,
+.spaces-dark {
+  --spaces-backdrop: #0d0d10;
+}
+
+.spaces-light {
+  --spaces-backdrop: #e8e5de;
+}
+
+/* The gap and the lifted edges show this, not the live page underneath. */
+.vt-spaces::view-transition {
+  background: var(--spaces-backdrop);
+}
+
+/* The lift lives on the group, so both pages shrink about the same centre. */
+.vt-spaces::view-transition-group(root) {
+  animation: spaces-lift var(--vt-duration, 0.55s) ease-in-out both;
+}
+
+.vt-spaces::view-transition-image-pair(root) {
+  isolation: auto;
+}
+
+.vt-spaces::view-transition-old(root),
+.vt-spaces::view-transition-new(root) {
+  mix-blend-mode: normal;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+/*
+ * --spaces-stay is 1 minus the parallax. At 1 the outgoing page travels the
+ * full distance and the two are one rigid strip; below that it lags, and the
+ * incoming page, stacked above, overtakes it.
+ */
+.vt-spaces::view-transition-old(root) {
+  animation: spaces-out var(--vt-duration, 0.55s) var(--spaces-ease, cubic-bezier(0.2, 0, 0, 1)) both;
+  z-index: 1;
+}
+
+.vt-spaces::view-transition-new(root) {
+  animation: spaces-in var(--vt-duration, 0.55s) var(--spaces-ease, cubic-bezier(0.2, 0, 0, 1)) both;
+  z-index: 2;
+}
+
+@keyframes spaces-out {
+  to {
+    transform: translateX(calc(var(--spaces-dir, -1) * (100% + var(--spaces-gap, 12px)) * var(--spaces-stay, 1)));
+  }
+}
+
+@keyframes spaces-in {
+  from {
+    transform: translateX(calc(-1 * var(--spaces-dir, -1) * (100% + var(--spaces-gap, 12px))));
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* Off the surface quickly, carried, and set back down as the strip lands. */
+@keyframes spaces-lift {
+  0%   { transform: scale(1); }
+  18%  { transform: scale(var(--spaces-lift, 0.96)); }
+  55%  { transform: scale(var(--spaces-lift, 0.96)); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-spaces::view-transition-group(root),
+  .vt-spaces::view-transition-old(root),
+  .vt-spaces::view-transition-new(root) {
+    animation: none;
+  }
+}

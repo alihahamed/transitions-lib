@@ -19,8 +19,8 @@ export type ViewTransitionConfig<O> = {
    * the navigation and would take its own defs with it.
    */
   defs: ReactNode | ((options: O) => ReactNode)
-  /** Runs once per navigation, before the snapshot is taken. */
-  prepare?: (options: O) => void
+  /** Runs once per navigation, before the snapshot is taken. `nav` says where from and where to. */
+  prepare?: (options: O, nav: { from: string; to: string }) => void
   /**
    * Drives one frame. progress runs 0 to 1. Omit it when the stylesheet does
    * the animating — the core still holds the snapshot open for the duration.
@@ -83,7 +83,7 @@ export function createViewTransition<O extends object>(config: ViewTransitionCon
         const seconds = config.duration(o)
 
         try {
-          config.prepare?.(o)
+          config.prepare?.(o, { from: location.pathname, to: new URL(href, location.href).pathname })
           config.paint?.(0, o)
         } catch (error) {
           console.error('[transition] prepare failed, navigating plainly', error)
