@@ -88,24 +88,25 @@ export default async function TransitionPage({ params }: PageProps<'/transitions
         <section className="mt-12">
           <h2 className="text-sm font-medium">Colour</h2>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Every colour reads from a CSS variable, so a preset is only a class. Put one
-            on any ancestor of the transition, or set the variables yourself for anything
-            the presets do not cover.
+            Every colour reads from a CSS variable, so a preset is only a class. Pass one
+            as <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">palette</code>,
+            or set the variables yourself in your stylesheet for anything the presets do
+            not cover.
           </p>
-          <div className="mt-3">
-            <CodeBlock
-              label="app/globals.css"
-              code={`:root {
-  --zip-metal-hi:   #ffffff;
-  --zip-metal:      #d7d2c8;
-  --zip-metal-mid:  #8f887c;
-  --zip-metal-lo:   #4a453e;
-  --zip-metal-edge: #211f1c;
-  --zip-tape:       #3d3d46;
-  --zip-tape-lo:    #26262c;
-}`}
-            />
-          </div>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {t.swatches.map((s) => (
+              <li
+                key={s.name}
+                className="flex items-center gap-2.5 rounded-full border border-border py-1.5 pl-1.5 pr-3.5"
+              >
+                <span className="flex overflow-hidden rounded-full border border-border/60">
+                  <span className="size-4" style={{ background: s.from }} />
+                  <span className="size-4" style={{ background: s.to }} />
+                </span>
+                <span className="font-mono text-xs text-muted-foreground">{s.name}</span>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
