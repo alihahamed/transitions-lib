@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { NavLink } from '@/components/site/nav-link'
 
 export default function SiteLayout({ children }: LayoutProps<'/'>) {
   return (
@@ -9,9 +10,7 @@ export default function SiteLayout({ children }: LayoutProps<'/'>) {
             transitions<span className="text-muted-foreground">/ui</span>
           </Link>
           <div className="ml-auto flex items-center gap-5 font-mono text-xs text-muted-foreground">
-            <Link href="/transitions" className="transition-colors hover:text-foreground">
-              gallery
-            </Link>
+            <NavLink href="/transitions">gallery</NavLink>
             <a
               href="https://github.com/alihahamed/transitions-lib"
               className="transition-colors hover:text-foreground"
