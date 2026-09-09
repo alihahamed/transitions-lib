@@ -3,6 +3,7 @@ import { transitions } from '@/lib/transitions'
 import { TransitionCard } from '@/components/site/transition-card'
 
 export default function Home() {
+  const shipped = transitions.filter((t) => t.ready)
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-20">
       <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
@@ -55,11 +56,11 @@ export default function Home() {
             href="/transitions"
             className="font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
-            all {transitions.length} →
+            all {shipped.length} →
           </Link>
         </div>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {transitions.slice(0, 3).map((t) => (
+          {shipped.slice(0, 3).map((t) => (
             <TransitionCard key={t.slug} t={t} />
           ))}
         </div>
