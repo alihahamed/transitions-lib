@@ -2,8 +2,8 @@ import type { PropDoc } from '@/lib/transitions'
 
 export function ApiReference({ props }: { props: PropDoc[] }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border">
-      <table className="w-full border-collapse text-left">
+    <div className="overflow-x-auto rounded-xl border border-border">
+      <table className="w-full min-w-[36rem] border-collapse text-left">
         <thead>
           <tr className="border-b border-border bg-muted/30">
             {['Property', 'Type', 'Default'].map((h) => (
