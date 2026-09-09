@@ -1,5 +1,8 @@
 import Link from 'next/link'
 import { NavLink } from '@/components/site/nav-link'
+import { transitions } from '@/lib/transitions'
+
+const shipped = transitions.filter((t) => t.ready).length
 
 export default function SiteLayout({ children }: LayoutProps<'/'>) {
   return (
@@ -21,8 +24,16 @@ export default function SiteLayout({ children }: LayoutProps<'/'>) {
         </nav>
       </header>
       {children}
-      <footer className="mt-auto border-t border-border/60 px-6 py-6 text-center font-mono text-[11px] text-muted-foreground">
-        one line in your layout · MIT
+      <footer className="mt-auto border-t border-border/60 px-6 py-6">
+        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 font-mono text-[11px] text-muted-foreground">
+          <span>one line in your layout · MIT</span>
+          <span>
+            {shipped} transitions ·{' '}
+            <a href="/r/registry.json" className="transition-colors hover:text-foreground">
+              registry.json
+            </a>
+          </span>
+        </div>
       </footer>
     </>
   )
