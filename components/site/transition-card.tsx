@@ -9,7 +9,7 @@ export function TransitionCard({ t }: { t: TransitionMeta }) {
   return (
     <Link
       href={`/transitions/${t.slug}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border transition-colors hover:border-foreground/30"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border transition-[border-color,transform,box-shadow] duration-300 ease-out hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)]"
     >
       <div className="relative flex aspect-[16/10] overflow-hidden">
         {t.accent.map((c, i) => (
