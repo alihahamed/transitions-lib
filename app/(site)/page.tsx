@@ -13,9 +13,10 @@ export default function Home() {
         <span className="text-muted-foreground"> a hand in them.</span>
       </h1>
       <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground">
-        Not fades. Not slides. Strokes that draw themselves across the screen, swap the
-        route behind their own ink, and retract away. Install one with the shadcn CLI and
-        wrap your layout — that is the whole integration.
+        Not fades. A clapperboard that claps, a strip of slats that folds, a zip that
+        closes, two desks that slide past on a spring. Each one covers the screen, swaps
+        the route behind itself, and leaves. Install one with the shadcn CLI and wrap your
+        layout — that is the whole integration.
       </p>
 
       <div className="mt-10 flex flex-wrap gap-3">
