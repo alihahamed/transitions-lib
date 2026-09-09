@@ -34,6 +34,20 @@ export default function Home() {
         </a>
       </div>
 
+      <section className="mt-20 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-3">
+        {[
+          ['01', 'Install', 'npx shadcn add …/r/slate.json'],
+          ['02', 'Wrap', '<SlateTransition>{children}</SlateTransition>'],
+          ['03', 'Done', 'Every <Link> is intercepted. Nothing else changes.'],
+        ].map(([n, title, body]) => (
+          <div key={n} className="bg-background p-5">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground">{n}</p>
+            <h3 className="mt-2 text-sm font-medium">{title}</h3>
+            <p className="mt-1.5 break-words font-mono text-[11px] leading-relaxed text-muted-foreground">{body}</p>
+          </div>
+        ))}
+      </section>
+
       <section className="mt-20">
         <div className="flex items-baseline justify-between">
           <h2 className="text-sm font-medium">Latest</h2>
