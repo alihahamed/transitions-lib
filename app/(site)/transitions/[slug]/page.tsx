@@ -122,9 +122,11 @@ export default async function TransitionPage({ params }: PageProps<'/transitions
         </ul>
       </section>
 
-      <nav className="mt-16 flex flex-wrap gap-2 border-t border-border/60 pt-8">
+      <nav aria-label="More transitions" className="mt-16 border-t border-border/60 pt-8">
+        <h2 className="text-sm font-medium">More transitions</h2>
+        <div className="mt-3 flex flex-wrap gap-2">
         {transitions
-          .filter((o) => o.slug !== t.slug)
+          .filter((o) => o.slug !== t.slug && o.ready)
           .map((o) => (
             <Link
               key={o.slug}
@@ -134,6 +136,7 @@ export default async function TransitionPage({ params }: PageProps<'/transitions
               {o.name} →
             </Link>
           ))}
+        </div>
       </nav>
     </main>
   )
