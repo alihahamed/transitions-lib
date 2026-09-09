@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { transitions, bySlug, installCommand } from '@/lib/transitions'
@@ -7,6 +8,13 @@ import { ApiReference } from '@/components/site/api-reference'
 
 export function generateStaticParams() {
   return transitions.map(({ slug }) => ({ slug }))
+}
+
+export async function generateMetadata({ params }: PageProps<'/transitions/[slug]'>): Promise<Metadata> {
+  const { slug } = await params
+  const t = bySlug(slug)
+  if (!t) return {}
+  return { title: t.name, description: t.tagline }
 }
 
 export default async function TransitionPage({ params }: PageProps<'/transitions/[slug]'>) {

@@ -1,5 +1,11 @@
+import type { Metadata } from 'next'
 import { transitions } from '@/lib/transitions'
 import { TransitionCard } from '@/components/site/transition-card'
+
+export const metadata: Metadata = {
+  title: 'Gallery',
+  description: 'Every shipped transition. Something covers the screen, the route swaps behind it, it leaves.',
+}
 
 export default function Gallery() {
   return (
