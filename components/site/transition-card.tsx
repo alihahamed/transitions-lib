@@ -30,7 +30,10 @@ export function TransitionCard({ t }: { t: TransitionMeta }) {
       <div className="flex flex-1 flex-col gap-1.5 border-t border-border p-4">
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="font-medium">{t.name}</h3>
-          <span className="font-mono text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-2 font-mono text-[10px] tabular-nums text-muted-foreground">
+            {t.dependencies.length === 0 && (
+              <span className="rounded-full border border-border px-1.5 py-px">no deps</span>
+            )}
             {(t.duration / 1000).toFixed(2)}s
           </span>
         </div>
