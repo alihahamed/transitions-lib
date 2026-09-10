@@ -4,6 +4,36 @@
   "homepage": "https://github.com/alihahamed/transitions-lib",
   "items": [
     {
+      "name": "tear",
+      "type": "registry:component",
+      "title": "Tear",
+      "description": "A sheet of paper drops over the page and is torn in two. A real cloth simulation, rendered with three.js. GSAP + three.",
+      "dependencies": [
+        "gsap",
+        "next-transition-router",
+        "three"
+      ],
+      "devDependencies": [
+        "@types/three"
+      ],
+      "files": [
+        {
+          "path": "registry/transitions/tear.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transition-core.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/transitions/transitions.css",
+          "type": "registry:file",
+          "target": "@components/transitions.css"
+        }
+      ],
+      "docs": "Wrap your layout with the transition. This is the only step:\n\n  // app/layout.tsx\n  import { TearTransition } from \"@/components/tear\"\n\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>\n          <TearTransition>{children}</TearTransition>\n        </body>\n      </html>\n    )\n  }\n\nYour existing <Link>s are intercepted automatically.\n\nA sheet of paper drops over the page, the route swaps behind it, and the sheet\nis torn in two: a jagged seam races down while the halves are pulled apart,\nthen they come free and fall out of frame. The paper is a real cloth\nsimulation stepped at a fixed 120Hz, and no two tears are alike. Rendered\nwith three.js, which this component installs — it is the one transition in\nthe set that carries a real dependency for its drawing, about 130KB gzipped.\nThe WebGL context is created while the page is idle; browsers without WebGL\nnavigate plainly.\n\ncols sets the mesh density, stiffness how much the paper resists bending,\ngravity how fast the halves fall, pull how hard they are pulled apart, jag\nhow rough the seam is, duration how long the tear takes.\n\nColour: paper=\"chalk\" (default), \"kraft\", \"newsprint\" or \"ink\" (black). For\nanything else pass paper=\"custom\" and set --tear-paper in\ncomponents/transitions.css.\n\nNote: browser back/forward is not animated, and the route does not start\nloading until the leave phase finishes (~0.85s)."
+    },
+    {
       "name": "spaces",
       "type": "registry:component",
       "title": "Spaces",
