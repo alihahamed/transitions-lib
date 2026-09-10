@@ -72,6 +72,7 @@ export default function RootLayout({ children }) {
       { name: 'chalk', from: '#f1ede4', to: '#ffffff' },
       { name: 'kraft', from: '#c9a26b', to: '#efdfc2' },
       { name: 'newsprint', from: '#d9d6cf', to: '#f7f5f0' },
+      { name: 'ink', from: '#1c1b1a', to: '#3a3835' },
     ],
     props: [
       { name: 'children', type: 'ReactNode', def: '\u2014', description: 'Your app. Wrap the contents of <body>. (Required)' },
@@ -82,10 +83,10 @@ export default function RootLayout({ children }) {
       { name: 'jag', type: 'number', def: '0.6', description: 'How often the seam jogs sideways as it runs down, 0 to 1.' },
       { name: 'duration', type: 'number', def: '0.35', description: 'Seconds the tear takes to run from top to bottom.' },
       { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole thing. Above 1 is faster.' },
-      { name: 'paper', type: '"chalk" | "kraft" | "newsprint" | "custom"', def: '"chalk"', description: 'Paper colour. "custom" applies no preset, leaving --tear-paper and --tear-fibre to you.' },
+      { name: 'paper', type: '"chalk" | "kraft" | "newsprint" | "ink" | "custom"', def: '"chalk"', description: 'Paper colour. "custom" applies no preset, leaving --tear-paper and --tear-fibre to you.' },
     ],
     controls: [
-      { kind: 'select', key: 'paper', label: 'Paper', options: ['chalk', 'kraft', 'newsprint'], def: 'chalk' },
+      { kind: 'select', key: 'paper', label: 'Paper', options: ['chalk', 'kraft', 'newsprint', 'ink'], def: 'chalk' },
       { kind: 'range', key: 'cols', label: 'Particles across', min: 12, max: 48, step: 2, def: 32 },
       { kind: 'range', key: 'stiffness', label: 'Stiffness', min: 0.2, max: 1, step: 0.05, def: 0.8 },
       { kind: 'range', key: 'gravity', label: 'Gravity', min: 0.8, max: 6, step: 0.2, def: 2.4 },

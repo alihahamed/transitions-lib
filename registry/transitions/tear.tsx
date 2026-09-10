@@ -8,14 +8,11 @@ import {
   CanvasTexture,
   DirectionalLight,
   DoubleSide,
-  HemisphereLight,
-  NeutralToneMapping,
   Mesh,
   MeshStandardMaterial,
   PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
-  PointLight,
   RepeatWrapping,
   Scene,
   ShadowMaterial,
@@ -65,7 +62,7 @@ export type TearOptions = {
   /** Multiplies the whole thing. Above 1 is faster. */
   speed: number
   /** Paper colour. "custom" applies no preset, leaving --tear-paper and --tear-fibre to you. */
-  paper: 'chalk' | 'kraft' | 'newsprint' | 'custom'
+  paper: 'chalk' | 'kraft' | 'newsprint' | 'ink' | 'custom'
 }
 
 const DEFAULTS: TearOptions = {
@@ -87,10 +84,13 @@ const ITER = 6
 const LIFT = 0.9
 /** Pull back towards the page, per unit of distance from it, so a lifted sheet settles flat again. */
 const WALL = 14
+/** The sheet is dropped, not lowered: the pins fall under this many screen heights per second squared until they hit their mark. */
+const DROP_G = 10
 const BLEED = 0.03
+/** The pinned top row sits well above the frame, so a half still in the hand never shows as a strip along the top. */
+const BLEED_TOP = 0.09
 /** The sheet runs on past the bottom, so a curled lower edge never uncovers the page. */
 const BLEED_BOTTOM = 0.16
-const DROP = 0.42
 const SETTLE = 0.33
 const HOLD = 0.06
 /** After this long in free fall gravity ramps up to clear stragglers; the phase ends at FALL_CAP regardless. */
@@ -129,6 +129,11 @@ type Rig = {
   seamLinks: Link[]
   torn: number
   views: [View, View]
+  /** Seam bookkeeping for drawing: per row, the seam vertex index in each cloth and its outer neighbour. */
+  seamL: Int32Array
+  seamR: Int32Array
+  seamLn: Int32Array
+  seamRn: Int32Array
   /** Per-navigation character: pull strength per side, when each side lets go, and a sideways gust. */
   pull: [number, number]
   release: [number, number]
@@ -143,128 +148,65 @@ type Gl = {
   key: DirectionalLight
   catcher: Mesh
   paper: MeshStandardMaterial
-  lamp: PointLight
 }
 let gl: Gl | null = null
 
 /**
- * Warm textured art paper. A height field of three things — the slow mottle of
- * pulp drying unevenly, the dimpled tooth of cold-press stock, and short fibres
- * along the grain — becomes a normal map, so the surface catches a raking light
- * the way real paper does. The colour map drifts between ivory and amber over
- * the sheet, sits a little darker in the pits of the tooth, and carries the
- * occasional dark fleck of fibre. Roughness follows the tooth: matte in the
- * pits, a whisper of sheen on the high spots.
+ * Paper, as two layers of noise. A soft mottle at a large scale, the way pulp
+ * dries unevenly, and a fine grain of short fibres on top. The colour map is
+ * kept very close to white so the material colour decides the paper; the bump
+ * map carries the same pattern with the fibres emphasised, for tooth.
  */
-function paperTextures(): { map: CanvasTexture; normal: CanvasTexture; rough: CanvasTexture } {
-  const N = 1024
+function paperTextures(): { map: CanvasTexture; bump: CanvasTexture } {
+  const N = 512
   const rnd = rng(7)
-  const noise = (L: number) => {
-    const lattice = new Float32Array(L * L)
-    for (let i = 0; i < lattice.length; i++) lattice[i] = rnd()
-    return (x: number, y: number) => {
-      const fx = (x / N) * L, fy = (y / N) * L
-      const ix = Math.floor(fx), iy = Math.floor(fy)
-      const tx = fx - ix, ty = fy - iy
-      const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty)
-      const at = (a: number, b: number) => lattice[(b % L) * L + (a % L)]
-      const top = at(ix, iy) * (1 - sx) + at(ix + 1, iy) * sx
-      const bot = at(ix, iy + 1) * (1 - sx) + at(ix + 1, iy + 1) * sx
-      return top * (1 - sy) + bot * sy
-    }
-  }
-  const coarse = noise(6)
-  const mid = noise(24)
-  const t1 = noise(160)
-  const t2 = noise(340)
-  const t3 = noise(640)
-  const mottle = new Float32Array(N * N)
-  const tooth = new Float32Array(N * N)
-  for (let y = 0; y < N; y++) {
-    for (let x = 0; x < N; x++) {
-      const i = y * N + x
-      mottle[i] = 0.65 * coarse(x, y) + 0.35 * mid(x, y)
-      // Dimples: a sum of octaves pushed through a curve so the pits are sharp and the tops broad.
-      const t = 0.5 * t1(x, y) + 0.3 * t2(x, y) + 0.2 * t3(x, y)
-      tooth[i] = Math.pow(t, 1.7)
-    }
+  const L = 16
+  const lattice = new Float32Array((L + 1) * (L + 1))
+  for (let i = 0; i < lattice.length; i++) lattice[i] = rnd()
+  const mottle = (x: number, y: number) => {
+    const fx = (x / N) * L, fy = (y / N) * L
+    const ix = Math.floor(fx), iy = Math.floor(fy)
+    const tx = fx - ix, ty = fy - iy
+    const at = (a: number, b: number) => lattice[(b % L) * (L + 1) + (a % L)]
+    const top = at(ix, iy) * (1 - tx) + at(ix + 1, iy) * tx
+    const bot = at(ix, iy + 1) * (1 - tx) + at(ix + 1, iy + 1) * tx
+    return top * (1 - ty) + bot * ty
   }
   const fibre = new Float32Array(N * N)
-  for (let k = 0; k < 30000; k++) {
+  for (let k = 0; k < 9000; k++) {
     const x0 = rnd() * N, y0 = rnd() * N
-    const ang = (rnd() - 0.5) * 1.4 + (rnd() < 0.5 ? 0 : Math.PI)
-    const len = 6 + rnd() * 22
-    const str = 0.25 + rnd() * 0.5
+    const ang = (rnd() - 0.5) * 1.2 + (rnd() < 0.5 ? 0 : Math.PI)
+    const len = 4 + rnd() * 14
+    const str = 0.35 + rnd() * 0.65
     for (let t = 0; t < len; t++) {
       const x = ((x0 + Math.cos(ang) * t) | 0) & (N - 1)
       const y = ((y0 + Math.sin(ang) * t) | 0) & (N - 1)
       fibre[y * N + x] = Math.min(1, fibre[y * N + x] + str)
     }
   }
-  // Flecks: a few hundred dark specks of unbleached fibre, two or three texels across.
-  const fleck = new Float32Array(N * N)
-  for (let k = 0; k < 420; k++) {
-    const x0 = (rnd() * N) | 0, y0 = (rnd() * N) | 0
-    const r = 1 + (rnd() * 2) | 0
-    const str = 0.25 + rnd() * 0.45
-    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-      if (dx * dx + dy * dy > r * r) continue
-      fleck[((y0 + dy) & (N - 1)) * N + ((x0 + dx) & (N - 1))] = str
-    }
-  }
-  const height = new Float32Array(N * N)
-  for (let i = 0; i < height.length; i++) height[i] = 0.6 * tooth[i] + 0.34 * mottle[i] + 0.06 * fibre[i]
-
-  const canvas = (fill: (x: number, y: number, out: Float32Array) => void) => {
+  const make = (fn: (x: number, y: number) => number) => {
     const c = document.createElement('canvas')
     c.width = c.height = N
     const ctx = c.getContext('2d')!
     const img = ctx.createImageData(N, N)
-    const px = new Float32Array(3)
     for (let y = 0; y < N; y++) {
       for (let x = 0; x < N; x++) {
-        fill(x, y, px)
+        const v = Math.max(0, Math.min(255, fn(x, y) * 255)) | 0
         const i = (y * N + x) * 4
-        img.data[i] = Math.max(0, Math.min(255, px[0] * 255)) | 0
-        img.data[i + 1] = Math.max(0, Math.min(255, px[1] * 255)) | 0
-        img.data[i + 2] = Math.max(0, Math.min(255, px[2] * 255)) | 0
+        img.data[i] = img.data[i + 1] = img.data[i + 2] = v
         img.data[i + 3] = 255
       }
     }
     ctx.putImageData(img, 0, 0)
     const tex = new CanvasTexture(c)
     tex.wrapS = tex.wrapT = RepeatWrapping
-    tex.repeat.set(1.5, 1.5)
-    tex.anisotropy = 8
+    tex.repeat.set(2, 2)
+    tex.anisotropy = 4
     return tex
   }
-
-  // Ivory drifting to amber with the mottle, darker in the pits, flecked.
-  const map = canvas((x, y, o) => {
-    const i = y * N + x
-    const m = mottle[i]
-    const pit = (1 - tooth[i]) * 0.045
-    const dark = fibre[i] * 0.03 + fleck[i] * 0.5 + pit
-    o[0] = (0.99 * (1 - m) + 0.955 * m) - dark
-    o[1] = (0.965 * (1 - m) + 0.91 * m) - dark
-    o[2] = (0.92 * (1 - m) + 0.83 * m) - dark * 1.1
-  })
-  // Tangent-space normals from the height field, by central differences.
-  const S = 3.2
-  const normal = canvas((x, y, o) => {
-    const hx = height[y * N + ((x + 1) & (N - 1))] - height[y * N + ((x - 1) & (N - 1))]
-    const hy = height[((y + 1) & (N - 1)) * N + x] - height[((y - 1) & (N - 1)) * N + x]
-    const nx = -hx * S, ny = hy * S, nz = 1
-    const l = Math.hypot(nx, ny, nz)
-    o[0] = nx / l * 0.5 + 0.5
-    o[1] = ny / l * 0.5 + 0.5
-    o[2] = nz / l * 0.5 + 0.5
-  })
-  const rough = canvas((x, y, o) => {
-    const v = 0.78 + 0.2 * (1 - tooth[y * N + x]) + 0.05 * fibre[y * N + x]
-    o[0] = o[1] = o[2] = v
-  })
-  return { map, normal, rough }
+  const map = make((x, y) => 0.92 + 0.08 * mottle(x, y) - 0.065 * fibre[y * N + x] + (rnd() - 0.5) * 0.03)
+  const bump = make((x, y) => 0.5 + 0.28 * (mottle(x, y) - 0.5) + 0.36 * fibre[y * N + x] + (rnd() - 0.5) * 0.09)
+  return { map, bump }
 }
 
 function getGl(canvas: HTMLCanvasElement): Gl {
@@ -273,42 +215,32 @@ function getGl(canvas: HTMLCanvasElement): Gl {
   renderer.setClearColor(0x000000, 0)
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = PCFShadowMap
-  renderer.toneMapping = NeutralToneMapping
-  renderer.toneMappingExposure = 1.0
   const scene = new Scene()
   const camera = new PerspectiveCamera(30, 1, 1, 100000)
-  // A studio window: a warm key raking in from the upper left so the tooth
-  // shows, a warm lamp near it for the fall-off across the sheet, cool sky
-  // above with warm bounce below, and a soft cool fill from the other side.
-  scene.add(new AmbientLight(0xffffff, 0.26))
-  scene.add(new HemisphereLight(0xdfe6ff, 0xd8c6a6, 0.7))
-  const key = new DirectionalLight(0xfff1de, 1.7)
+  scene.add(new AmbientLight(0xffffff, 1.0))
+  const key = new DirectionalLight(0xffffff, 1.95)
   key.castShadow = true
-  key.shadow.mapSize.set(2048, 2048)
-  key.shadow.bias = -0.0006
-  key.shadow.normalBias = 2
-  key.shadow.radius = 8
+  key.shadow.mapSize.set(1024, 1024)
+  key.shadow.bias = -0.0008
+  key.shadow.radius = 6
   scene.add(key, key.target)
-  const lamp = new PointLight(0xffe4bd, 1, 0, 2)
-  scene.add(lamp)
-  const fill = new DirectionalLight(0xd8e2ff, 0.35)
-  fill.position.set(1, -0.6, 1.5)
+  const fill = new DirectionalLight(0xffffff, 0.5)
+  fill.position.set(1, -1, 2)
   scene.add(fill)
   const tex = paperTextures()
   const paper = new MeshStandardMaterial({
-    roughness: 1,
+    roughness: 0.96,
     metalness: 0,
     side: DoubleSide,
     map: tex.map,
-    normalMap: tex.normal,
-    roughnessMap: tex.rough,
+    bumpMap: tex.bump,
+    bumpScale: 0.7,
     vertexColors: true,
   })
-  paper.normalScale.set(0.7, 0.7)
   const catcher = new Mesh(new PlaneGeometry(1, 1), new ShadowMaterial({ opacity: 0.32 }))
   catcher.receiveShadow = true
   scene.add(catcher)
-  gl = { renderer, scene, camera, key, catcher, paper, lamp }
+  gl = { renderer, scene, camera, key, catcher, paper }
   return gl
 }
 
@@ -351,12 +283,7 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
   cam.lookAt(0, 0, 0)
   cam.updateProjectionMatrix()
   const big = Math.max(w, h)
-  // Raking: low over the sheet from the upper left.
-  g.key.position.set(-0.7 * w, 0.8 * h, 0.55 * big)
-  const ld = 0.9 * big
-  g.lamp.position.set(-0.25 * w, 0.45 * h, ld)
-  // Physical fall-off: set so the lamp reads at about 1.1 where it is closest.
-  g.lamp.intensity = 1.1 * ld * ld
+  g.key.position.set(-0.55 * w, 0.75 * h, 0.9 * big)
   g.key.target.position.set(0, 0, 0)
   const sc = g.key.shadow.camera
   sc.left = -0.8 * w
@@ -375,12 +302,12 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
 
   const cols = Math.max(8, Math.round(o.cols))
   const sheetW = w * (1 + 2 * BLEED)
-  const sheetH = h * (1 + BLEED + BLEED_BOTTOM)
+  const sheetH = h * (1 + BLEED_TOP + BLEED_BOTTOM)
   const cellW = sheetW / cols
   const rows = Math.max(10, Math.round(sheetH / cellW))
   const cellH = sheetH / rows
   const x0 = -BLEED * w
-  const y0 = -BLEED * h
+  const y0 = -BLEED_TOP * h
 
   // The seam: a column per particle row, wandering at most one cell per row.
   const rand = rng(hash(seed))
@@ -389,7 +316,7 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
   const first = rand() < 0.5 ? 0 : 1
   const pull: [number, number] = [0.7 + rand() * 0.7, 0.7 + rand() * 0.7]
   const release: [number, number] = [0, 0]
-  release[1 - first] = 0.06 + rand() * 0.16
+  release[1 - first] = 0.04 + rand() * 0.1
   const gust = (rand() < 0.5 ? -1 : 1) * (0.15 + rand() * 0.45)
   const v: number[] = []
   let c = Math.round(cols / 2 + (rand() - 0.5) * cols * 0.3)
@@ -492,7 +419,15 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
     return { mesh, geo }
   }
 
-  return { w, h, sheetH, rows, cloths: [left, right], seamLinks, torn: 0, views: [view(left), view(right)], pull, release, gust }
+  const seamL = Int32Array.from(v.map((cc, r) => idx(cc, r)))
+  const seamR = Int32Array.from(v.map((cc, r) => idx(cc, r)))
+  const seamLn = Int32Array.from(v.map((cc, r) => idx(cc - 1, r)))
+  const seamRn = Int32Array.from(v.map((cc, r) => idx(cc + 1, r)))
+
+  return {
+    w, h, sheetH, rows, cloths: [left, right], seamLinks, torn: 0, views: [view(left), view(right)],
+    seamL, seamR, seamLn, seamRn, pull, release, gust,
+  }
 }
 
 function discard(g: Gl, r: Rig) {
@@ -502,18 +437,24 @@ function discard(g: Gl, r: Rig) {
   }
 }
 
-function step(rig: Rig, o: TearOptions, gScale = 1) {
+function step(rig: Rig, o: TearOptions, time: number, gScale = 1, wall = WALL) {
   const g = o.gravity * rig.h * gScale
   const zMax = 0.3 * rig.w
   // The gust only matters once the sheet is torn and coming down.
-  const ax = rig.torn > 0 ? rig.gust * g : 0
+  const gustX = rig.torn > 0 ? rig.gust * g : 0
+  const kx = 7 / rig.w
   for (const cl of rig.cloths) {
     for (const p of cl.ps) {
       if (!p.on || p.pinned) continue
       const vx = (p.x - p.px) * DAMP
       const vy = (p.y - p.py) * DAMP
       const vz = (p.z - p.pz) * DAMP
-      const az = LIFT * (vy / STEP) - WALL * p.z
+      const speed = vy / STEP
+      // Air is not still: a slow wave across the sheet and down it, scaled by how
+      // fast it is falling, so a dropping sheet flutters rather than sinking flat.
+      const flutter = Math.sin(p.x * kx + time * 9) * Math.cos(p.y * kx * 0.6 - time * 5)
+      const az = LIFT * speed * (1 + 0.6 * flutter) - wall * p.z
+      const ax = gustX + 0.12 * Math.abs(speed) * flutter
       p.px = p.x
       p.py = p.y
       p.pz = p.z
@@ -625,8 +566,47 @@ function draw(rig: Rig) {
     }
     pos.needsUpdate = true
     colAttr.needsUpdate = true
-    v.geo.computeVertexNormals()
   })
+
+  // While a seam row is still joined the two halves are one sheet, and must be
+  // drawn as one: the duplicate vertices get one smoothed position, and after
+  // the normals are computed per mesh, one shared normal. Without this the
+  // seam shows as a ridge in the paper before it has torn.
+  const [L, R] = rig.cloths
+  const pl = rig.views[0].geo.attributes.position.array as Float32Array
+  const pr = rig.views[1].geo.attributes.position.array as Float32Array
+  const rows = rig.seamL.length
+  // The pinned top row and the free bottom row are not smoothed, so their seam vertex is left alone too.
+  for (let r = 1; r < rows - 1; r++) {
+    if (!rig.seamLinks[r].alive) continue
+    const a = L.ps[rig.seamL[r]], b = R.ps[rig.seamR[r]]
+    const ln = L.ps[rig.seamLn[r]], rn = R.ps[rig.seamRn[r]]
+    const up = r > 0 ? L.seam[r - 1] : a
+    const dn = r < rows - 1 ? L.seam[r + 1] : a
+    const px = 0.5 * (a.x + b.x), py = 0.5 * (a.y + b.y), pz = 0.5 * (a.z + b.z)
+    const mx = 0.25 * (ln.x + rn.x + up.x + dn.x)
+    const my = 0.25 * (ln.y + rn.y + up.y + dn.y)
+    const mz = 0.25 * (ln.z + rn.z + up.z + dn.z)
+    const x = 0.5 * (px + mx) - cx, y = cy - 0.5 * (py + my), z = 0.5 * (pz + mz)
+    const i = 3 * rig.seamL[r], j = 3 * rig.seamR[r]
+    pl[i] = x; pl[i + 1] = y; pl[i + 2] = z
+    pr[j] = x; pr[j + 1] = y; pr[j + 2] = z
+  }
+  for (const v of rig.views) v.geo.computeVertexNormals()
+  const nl = rig.views[0].geo.attributes.normal as BufferAttribute
+  const nr = rig.views[1].geo.attributes.normal as BufferAttribute
+  const nla = nl.array as Float32Array, nra = nr.array as Float32Array
+  for (let r = 0; r < rows; r++) {
+    if (!rig.seamLinks[r].alive) continue
+    const i = 3 * rig.seamL[r], j = 3 * rig.seamR[r]
+    let x = nla[i] + nra[j], y = nla[i + 1] + nra[j + 1], z = nla[i + 2] + nra[j + 2]
+    const l = Math.hypot(x, y, z) || 1
+    x /= l; y /= l; z /= l
+    nla[i] = x; nla[i + 1] = y; nla[i + 2] = z
+    nra[j] = x; nra[j + 1] = y; nra[j + 2] = z
+  }
+  nl.needsUpdate = true
+  nr.needsUpdate = true
   gl.renderer.render(gl.scene, gl.camera)
 }
 
@@ -640,6 +620,7 @@ function run(
   before: (t: number) => number | void,
   isDone: (t: number) => boolean,
   done: () => void,
+  wallAt: (t: number) => number = () => WALL,
 ) {
   let t = 0
   let acc = 0
@@ -650,7 +631,7 @@ function run(
     let n = 0
     while (acc >= STEP && n < 6) {
       const gScale = before(t - acc) || 1
-      step(rig, o, gScale)
+      step(rig, o, t - acc, gScale, wallAt(t - acc))
       acc -= STEP
       n++
     }
@@ -664,7 +645,6 @@ function run(
   return () => gsap.ticker.remove(tick)
 }
 
-const easeInOut = (x: number) => (x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2)
 const easeIn = (x: number) => x * x
 
 /** The overlay is mounted once and there is never more than one navigation in flight. */
@@ -702,19 +682,26 @@ export const TearTransition = createTransition<TearOptions>({
       return
     }
     const r = rig
-    // Start with the whole sheet above the frame, hanging from the pins.
-    const lift = r.sheetH + 24
+    // Start with the sheet's bottom edge just above the frame, hanging from the
+    // pins, so the first frame of the drop already shows it arriving.
+    const lift = r.sheetH - BLEED_TOP * r.h + 4
     for (const cl of r.cloths) for (const p of cl.ps) { p.y -= lift; p.py = p.y }
 
+    // Free fall from rest, stopped dead at the mark. The cloth below carries on
+    // for a moment and is caught by its own constraints, which is the landing.
+    const g = DROP_G * r.h
+    const tHit = Math.sqrt((2 * lift) / g)
     return run(
       r,
       o,
       (t) => {
-        const k = Math.min(1, t / DROP)
-        pin(r, 0, -lift * (1 - easeInOut(k)), 0)
+        const fallen = Math.min(lift, 0.5 * g * t * t)
+        pin(r, 0, fallen - lift, 0)
       },
-      (t) => t >= DROP + SETTLE,
+      (t) => t >= tHit + SETTLE,
       done,
+      // In the air the sheet is free to billow; once the pins stop it is pressed flat.
+      (t) => (t < tHit ? 1.5 : WALL),
     )
   },
 
@@ -749,12 +736,13 @@ export const TearTransition = createTransition<TearOptions>({
         r.torn = Math.max(r.torn, front)
 
         if (!released[0] || !released[1]) {
-          const since = t - HOLD
+          // The hands pull apart while the tear runs, then hold still and let go.
+          const since = Math.min(t, tearEnd) - HOLD
           const dx = o.pull * r.w * since
           const dz = Math.min(0.12 * r.w, 0.35 * r.w * since)
           pin(r, dx, 0, dz, true)
           r.cloths.forEach((cl, i) => {
-            if (released[i] || t < tearEnd + 0.05 + r.release[i]) return
+            if (released[i] || t < tearEnd + 0.02 + r.release[i]) return
             // This hand lets go. Carry the pull's velocity into the freed particles.
             released[i] = true
             for (const p of cl.pins) {
