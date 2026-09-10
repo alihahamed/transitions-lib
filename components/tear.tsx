@@ -6,11 +6,9 @@ import {
   BufferAttribute,
   BufferGeometry,
   CanvasTexture,
-  Color,
   DirectionalLight,
   DoubleSide,
   Mesh,
-  MeshBasicMaterial,
   MeshStandardMaterial,
   PCFShadowMap,
   PerspectiveCamera,
@@ -80,7 +78,7 @@ const DEFAULTS: TearOptions = {
   duration: 0.35,
   speed: 1,
   paper: 'chalk',
-  fringe: 8,
+  fringe: 22,
   quality: 'auto',
 }
 
@@ -161,7 +159,7 @@ type Gl = {
   key: DirectionalLight
   catcher: Mesh
   paper: MeshStandardMaterial
-  fibre: MeshBasicMaterial
+  fibre: MeshStandardMaterial
   low: boolean
 }
 let gl: Gl | null = null
@@ -177,27 +175,37 @@ function lowQuality(o: TearOptions) {
 }
 
 /**
- * The fringe of fibre along a torn edge, as an alpha map: along the strip the
- * fibres vary in length and the odd strand runs long; across it the alpha
- * fades from the edge out to nothing.
+ * A torn edge, as an alpha map for a strip that straddles the seam. Across the
+ * strip (v) the inner part is solid paper, so it hides the mesh's straight
+ * edge; the boundary wanders, so the visible edge is ragged at a scale finer
+ * than the mesh; beyond it individual strands of fibre stick out, a few of
+ * them long, with a little fuzz between.
  */
 function fringeTexture() {
-  const W = 512, H = 64
+  const W = 1024, H = 64
   const rnd = rng(11)
-  const len = new Float32Array(W)
-  const gain = new Float32Array(W)
-  let v = 0.4
+  // The ragged boundary, as a random walk with a gentle pull back to the middle.
+  // It has to stay outside the mesh's own edge (v = 0.375 across this strip), since
+  // the mesh is drawn regardless; the ragged part is paper that reaches beyond it.
+  const edge = new Float32Array(W)
+  let e = 0.5
   for (let x = 0; x < W; x++) {
-    v += (rnd() - 0.5) * 0.3
-    v = Math.max(0.08, Math.min(0.7, v))
-    len[x] = v
-    // Broken, not continuous: some columns carry almost nothing.
-    gain[x] = rnd() < 0.3 ? 0.15 + rnd() * 0.3 : 0.55 + rnd() * 0.45
+    e += (rnd() - 0.5) * 0.1 + (0.5 - e) * 0.06
+    edge[x] = Math.max(0.4, Math.min(0.66, e))
   }
-  for (let k = 0; k < 36; k++) {
+  // Strands: two to three pixels wide, of varying length and strength.
+  const strand = new Float32Array(W)
+  const strength = new Float32Array(W)
+  for (let k = 0; k < 190; k++) {
     const x0 = (rnd() * W) | 0
-    len[x0] = 0.85 + rnd() * 0.15
-    gain[x0] = 1
+    const len = rnd() < 0.25 ? 0.25 + rnd() * 0.32 : 0.06 + rnd() * 0.16
+    const str = 0.6 + rnd() * 0.4
+    const wdt = 3 + ((rnd() * 3) | 0)
+    for (let d = 0; d < wdt; d++) {
+      const x = (x0 + d) % W
+      strand[x] = Math.max(strand[x], len)
+      strength[x] = Math.max(strength[x], str)
+    }
   }
   const c = document.createElement('canvas')
   c.width = W
@@ -206,9 +214,16 @@ function fringeTexture() {
   const img = ctx.createImageData(W, H)
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
-      const t = y / (H - 1)
-      const L = len[x]
-      const a = t < L ? Math.pow(1 - t / L, 1.6) * gain[x] : 0
+      const v = y / (H - 1)
+      const b = edge[x]
+      let a: number
+      if (v <= b) a = 1
+      else {
+        const beyond = v - b
+        const fuzz = Math.exp(-beyond / 0.03) * 0.4
+        const st = beyond < strand[x] ? strength[x] * (1 - beyond / strand[x]) : 0
+        a = Math.max(fuzz, st)
+      }
       const i = (y * W + x) * 4
       img.data[i] = img.data[i + 1] = img.data[i + 2] = (a * 255) | 0
       img.data[i + 3] = 255
@@ -220,12 +235,6 @@ function fringeTexture() {
   return tex
 }
 
-/**
- * Paper, as two layers of noise. A soft mottle at a large scale, the way pulp
- * dries unevenly, and a fine grain of short fibres on top. The colour map is
- * kept very close to white so the material colour decides the paper; the bump
- * map carries the same pattern with the fibres emphasised, for tooth.
- */
 function paperTextures(): { map: CanvasTexture; bump: CanvasTexture } {
   const N = 512
   const rnd = rng(7)
@@ -306,14 +315,16 @@ function getGl(canvas: HTMLCanvasElement, low: boolean): Gl {
     bumpScale: 0.7,
     vertexColors: true,
   })
-  // Unlit: a fuzz this thin has no meaningful normal, and lit it went black.
-  const fibre = new MeshBasicMaterial({
-    side: DoubleSide,
-    transparent: true,
-    depthWrite: false,
-    opacity: 0.85,
-    alphaMap: fringeTexture(),
-  })
+  // The same paper, so where the strip overlaps the sheet it is invisible; only
+  // the alpha map's ragged boundary and strands show. Vertex colour lifts the
+  // strands towards white, like exposed pulp.
+  const fibre = paper.clone()
+  fibre.alphaMap = fringeTexture()
+  fibre.alphaMap.channel = 1
+  fibre.transparent = true
+  fibre.depthWrite = false
+  fibre.polygonOffset = true
+  fibre.polygonOffsetFactor = -2
   const catcher = new Mesh(new PlaneGeometry(1, 1), new ShadowMaterial({ opacity: 0.32 }))
   catcher.receiveShadow = true
   if (!low) scene.add(catcher)
@@ -392,18 +403,9 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
   const host = overlay.firstElementChild as Element
   const style = getComputedStyle(host)
   let colour = style.getPropertyValue('--tear-paper').trim() || '#f1ede4'
-  let fibreColour = style.getPropertyValue('--tear-fibre').trim() || '#ffffff'
-  if (o.paper === 'page') {
-    const bg = pageColour(w, h)
-    if (bg) {
-      colour = bg
-      // The torn core of coloured stock is paler than its face.
-      fibreColour = '#' + new Color(bg).lerp(new Color('#ffffff'), 0.55).getHexString()
-    }
-  }
+  if (o.paper === 'page') colour = pageColour(w, h) ?? colour
   g.paper.color.set(colour)
-  // Sits between the paper as lit and its paler torn core, so it reads as fibre, not a border.
-  g.fibre.color.set(new Color(colour).multiplyScalar(0.92).lerp(new Color(fibreColour), 0.45))
+  g.fibre.color.set(colour)
 
   const cols = Math.max(8, Math.round(g.low ? Math.min(o.cols, 20) : o.cols))
   const sheetW = w * (1 + 2 * BLEED)
@@ -542,15 +544,35 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
       const n = rows + 1
       fringeGeo = new BufferGeometry()
       fringeGeo.setAttribute('position', new BufferAttribute(new Float32Array(n * 2 * 3), 3))
+      fringeGeo.setAttribute('normal', new BufferAttribute(new Float32Array(n * 2 * 3), 3))
+      // The paper texture continues across the strip; the alpha map runs along it.
       const fuv = new Float32Array(n * 2 * 2)
+      const fcol = new Float32Array(n * 2 * 3)
+      const inset = 0.6 * o.fringe
       for (let r = 0; r < n; r++) {
-        const u = (r * cellH) / 48
-        fuv[4 * r] = u
-        fuv[4 * r + 1] = 0
-        fuv[4 * r + 2] = u
-        fuv[4 * r + 3] = 1
+        const sp = cl.seam[r]
+        const ux = (sp.rx - x0) / sheetW
+        const uy = 1 - (sp.ry - y0) / sheetH
+        const du = (cl.side * inset) / sheetW
+        fuv[4 * r] = ux - du
+        fuv[4 * r + 1] = uy
+        fuv[4 * r + 2] = ux + (cl.side * o.fringe) / sheetW
+        fuv[4 * r + 3] = uy
+        fcol[6 * r] = fcol[6 * r + 1] = fcol[6 * r + 2] = 1
+        fcol[6 * r + 3] = fcol[6 * r + 4] = fcol[6 * r + 5] = 1.12
       }
       fringeGeo.setAttribute('uv', new BufferAttribute(fuv, 2))
+      fringeGeo.setAttribute('color', new BufferAttribute(fcol, 3))
+      // The alpha map's own coordinates: along the seam and across the strip.
+      const fuv2 = new Float32Array(n * 2 * 2)
+      for (let r = 0; r < n; r++) {
+        const u = (r * cellH) / 700
+        fuv2[4 * r] = u
+        fuv2[4 * r + 1] = 0
+        fuv2[4 * r + 2] = u
+        fuv2[4 * r + 3] = 1
+      }
+      fringeGeo.setAttribute('uv1', new BufferAttribute(fuv2, 2))
       const fi: number[] = []
       for (let r = 0; r < rows; r++) {
         const a = 2 * r, b = 2 * r + 1, c2 = 2 * r + 2, d = 2 * r + 3
@@ -561,6 +583,8 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
       fringe = new Mesh(fringeGeo, g.fibre)
       fringe.frustumCulled = false
       fringe.renderOrder = 1
+      // No shadows on the strip: the sheet's own shadow would land on it as a dark hairline.
+      fringe.receiveShadow = false
       g.scene.add(fringe)
     }
     return { mesh, geo, fringe, fringeGeo }
@@ -780,23 +804,33 @@ function draw(rig: Rig) {
       const fa = fp.array as Float32Array
       const seamIdx = i === 0 ? rig.seamL : rig.seamR
       const nbrIdx = i === 0 ? rig.seamLn : rig.seamRn
+      const fn = v.fringeGeo.attributes.normal as BufferAttribute
+      const fna = fn.array as Float32Array
+      const sheetN = (i === 0 ? nl : nr).array as Float32Array
+      const inset = 0.6 * rig.fringe
       for (let r = 0; r < torn; r++) {
         const p = cl.ps[seamIdx[r]]
         const n = cl.ps[nbrIdx[r]]
         let ox = p.x - n.x, oy = p.y - n.y, oz = p.z - n.z
         const l = Math.hypot(ox, oy, oz) || 1
-        ox = (ox / l) * rig.fringe
-        oy = (oy / l) * rig.fringe
-        oz = (oz / l) * rig.fringe
+        ox /= l
+        oy /= l
+        oz /= l
         const k = 6 * r
-        fa[k] = p.x - cx
-        fa[k + 1] = cy - p.y
-        fa[k + 2] = p.z + 0.6
-        fa[k + 3] = p.x + ox - cx
-        fa[k + 4] = cy - (p.y + oy)
-        fa[k + 5] = p.z + oz + 0.6
+        // Inner vertex a little inside the sheet, outer out in the gap.
+        fa[k] = p.x - ox * inset - cx
+        fa[k + 1] = cy - (p.y - oy * inset)
+        fa[k + 2] = p.z - oz * inset + 0.4
+        fa[k + 3] = p.x + ox * rig.fringe - cx
+        fa[k + 4] = cy - (p.y + oy * rig.fringe)
+        fa[k + 5] = p.z + oz * rig.fringe + 0.4
+        const si = 3 * seamIdx[r]
+        fna[k] = fna[k + 3] = sheetN[si]
+        fna[k + 1] = fna[k + 4] = sheetN[si + 1]
+        fna[k + 2] = fna[k + 5] = sheetN[si + 2]
       }
       fp.needsUpdate = true
+      fn.needsUpdate = true
       v.fringeGeo.setDrawRange(0, Math.max(0, torn - 1) * 6)
     })
   }
