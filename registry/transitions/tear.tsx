@@ -92,7 +92,9 @@ const BLEED_BOTTOM = 0.16
 const DROP = 0.42
 const SETTLE = 0.33
 const HOLD = 0.06
-const FALL_CAP = 1.4
+/** After this long in free fall gravity ramps up to clear stragglers; the phase ends at FALL_CAP regardless. */
+const FALL_RAMP = 0.9
+const FALL_CAP = 3
 
 type Particle = {
   x: number; y: number; z: number
@@ -208,8 +210,8 @@ function paperTextures(): { map: CanvasTexture; bump: CanvasTexture; rough: Canv
     tex.anisotropy = 8
     return tex
   }
-  const map = make((x, y) => 0.94 + 0.06 * mottle(x, y) - 0.035 * fibre[y * N + x] + (rnd() - 0.5) * 0.015)
-  const bump = make((x, y) => 0.5 + 0.3 * (mottle(x, y) - 0.5) + 0.35 * fibre[y * N + x] + (rnd() - 0.5) * 0.06)
+  const map = make((x, y) => 0.9 + 0.1 * mottle(x, y) - 0.07 * fibre[y * N + x] + (rnd() - 0.5) * 0.03)
+  const bump = make((x, y) => 0.5 + 0.3 * (mottle(x, y) - 0.5) + 0.45 * fibre[y * N + x] + (rnd() - 0.5) * 0.1)
   // Slightly glossier where the pulp is dense, matte on the fibres: a hint of sheen that moves with the folds.
   const rough = make((x, y) => 0.86 + 0.1 * (1 - mottle(x, y)) + 0.04 * fibre[y * N + x])
   return { map, bump, rough }
@@ -222,21 +224,21 @@ function getGl(canvas: HTMLCanvasElement): Gl {
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = PCFShadowMap
   renderer.toneMapping = NeutralToneMapping
-  renderer.toneMappingExposure = 1.05
+  renderer.toneMappingExposure = 0.92
   const scene = new Scene()
   const camera = new PerspectiveCamera(30, 1, 1, 100000)
   // Daylight through a window: a warm key from the upper left, cool sky above, a
   // touch of bounce from below, and a soft fill from the other side.
-  scene.add(new AmbientLight(0xffffff, 0.35))
-  scene.add(new HemisphereLight(0xe6edff, 0xcfc6b8, 0.9))
-  const key = new DirectionalLight(0xfff7ee, 2.4)
+  scene.add(new AmbientLight(0xffffff, 0.22))
+  scene.add(new HemisphereLight(0xe6edff, 0xcfc6b8, 0.65))
+  const key = new DirectionalLight(0xfff7ee, 2.0)
   key.castShadow = true
   key.shadow.mapSize.set(2048, 2048)
   key.shadow.bias = -0.0006
   key.shadow.normalBias = 2
   key.shadow.radius = 8
   scene.add(key, key.target)
-  const fill = new DirectionalLight(0xdde6ff, 0.6)
+  const fill = new DirectionalLight(0xdde6ff, 0.45)
   fill.position.set(1, -0.6, 1.5)
   scene.add(fill)
   const tex = paperTextures()
@@ -246,7 +248,7 @@ function getGl(canvas: HTMLCanvasElement): Gl {
     side: DoubleSide,
     map: tex.map,
     bumpMap: tex.bump,
-    bumpScale: 0.5,
+    bumpScale: 1.1,
     roughnessMap: tex.rough,
     vertexColors: true,
   })
@@ -442,8 +444,8 @@ function discard(g: Gl, r: Rig) {
   }
 }
 
-function step(rig: Rig, o: TearOptions) {
-  const g = o.gravity * rig.h
+function step(rig: Rig, o: TearOptions, gScale = 1) {
+  const g = o.gravity * rig.h * gScale
   const zMax = 0.3 * rig.w
   // The gust only matters once the sheet is torn and coming down.
   const ax = rig.torn > 0 ? rig.gust * g : 0
@@ -574,7 +576,13 @@ function draw(rig: Rig) {
  * Runs a phase on GSAP's ticker: fixed physics steps, one draw per frame, and
  * `phase(t)` decides when it is over. Returns the cleanup the core expects.
  */
-function run(rig: Rig, o: TearOptions, before: (t: number) => void, isDone: (t: number) => boolean, done: () => void) {
+function run(
+  rig: Rig,
+  o: TearOptions,
+  before: (t: number) => number | void,
+  isDone: (t: number) => boolean,
+  done: () => void,
+) {
   let t = 0
   let acc = 0
   const tick = (_time: number, deltaMs: number) => {
@@ -583,8 +591,8 @@ function run(rig: Rig, o: TearOptions, before: (t: number) => void, isDone: (t: 
     acc += dt
     let n = 0
     while (acc >= STEP && n < 6) {
-      before(t - acc)
-      step(rig, o)
+      const gScale = before(t - acc) || 1
+      step(rig, o, gScale)
       acc -= STEP
       n++
     }
@@ -697,6 +705,10 @@ export const TearTransition = createTransition<TearOptions>({
             }
           })
         }
+        // A piece that is still hanging about well into the fall gets pulled
+        // down harder, so nothing is ever cut off mid-air by the cap.
+        const falling = t - tearEnd - FALL_RAMP
+        return falling > 0 ? 1 + falling * 4 : 1
       },
       (t) => {
         if (t < tearEnd) return false
