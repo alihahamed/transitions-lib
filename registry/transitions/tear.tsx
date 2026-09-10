@@ -63,8 +63,6 @@ export type TearOptions = {
   speed: number
   /** Paper colour. "page" takes the current page's background, so it is the page itself that tears. "custom" applies no preset, leaving --tear-paper and --tear-fibre to you. */
   paper: 'chalk' | 'kraft' | 'newsprint' | 'ink' | 'page' | 'custom'
-  /** Length of the fibrous fringe along the torn edge, in px. 0 for a clean cut. */
-  fringe: number
   /** "low" drops the shadow, the bump and some of the mesh for weaker devices. "auto" picks by device. */
   quality: 'auto' | 'high' | 'low'
 }
@@ -78,7 +76,6 @@ const DEFAULTS: TearOptions = {
   duration: 0.35,
   speed: 1,
   paper: 'chalk',
-  fringe: 22,
   quality: 'auto',
 }
 
@@ -104,6 +101,8 @@ const FALL_RAMP = 0.9
 const FALL_CAP = 3
 /** How fast a bent bend-link forgets its rest length: paper keeps its creases, cloth does not. */
 const PLASTIC = 0.03
+/** Length of the fibrous fringe along the torn edge, in px. Kept small on purpose. */
+const FRINGE = 2
 
 type Particle = {
   x: number; y: number; z: number
@@ -148,7 +147,6 @@ type Rig = {
   gust: number
   /** Where the tear hesitates on its way down, as spans of eased progress. */
   holds: { at: number; len: number }[]
-  fringe: number
 }
 
 /** The renderer, lights and catcher plane. Made once, kept for the life of the page. */
@@ -540,7 +538,7 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
     // only where the seam has torn. Its outer edge hangs out into the gap.
     let fringe: Mesh | null = null
     let fringeGeo: BufferGeometry | null = null
-    if (o.fringe > 0) {
+    {
       const n = rows + 1
       fringeGeo = new BufferGeometry()
       fringeGeo.setAttribute('position', new BufferAttribute(new Float32Array(n * 2 * 3), 3))
@@ -548,7 +546,7 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
       // The paper texture continues across the strip; the alpha map runs along it.
       const fuv = new Float32Array(n * 2 * 2)
       const fcol = new Float32Array(n * 2 * 3)
-      const inset = 0.6 * o.fringe
+      const inset = 0.6 * FRINGE
       for (let r = 0; r < n; r++) {
         const sp = cl.seam[r]
         const ux = (sp.rx - x0) / sheetW
@@ -556,7 +554,7 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
         const du = (cl.side * inset) / sheetW
         fuv[4 * r] = ux - du
         fuv[4 * r + 1] = uy
-        fuv[4 * r + 2] = ux + (cl.side * o.fringe) / sheetW
+        fuv[4 * r + 2] = ux + (cl.side * FRINGE) / sheetW
         fuv[4 * r + 3] = uy
         fcol[6 * r] = fcol[6 * r + 1] = fcol[6 * r + 2] = 1
         fcol[6 * r + 3] = fcol[6 * r + 4] = fcol[6 * r + 5] = 1.12
@@ -597,7 +595,7 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
 
   return {
     w, h, sheetH, rows, cloths: [left, right], seamLinks, torn: 0, views: [view(left), view(right)],
-    seamL, seamR, seamLn, seamRn, pull, release, gust, holds, fringe: o.fringe,
+    seamL, seamR, seamLn, seamRn, pull, release, gust, holds,
   }
 }
 
@@ -795,7 +793,7 @@ function draw(rig: Rig) {
 
   // The fringe follows the torn part of each edge, hanging out into the gap
   // along the direction from the sheet's interior to its edge.
-  if (rig.fringe > 0 && rig.torn > 0) {
+  if (rig.torn > 0) {
     const torn = Math.min(rows, Math.ceil(rig.torn) + 1)
     rig.cloths.forEach((cl, i) => {
       const v = rig.views[i]
@@ -807,7 +805,7 @@ function draw(rig: Rig) {
       const fn = v.fringeGeo.attributes.normal as BufferAttribute
       const fna = fn.array as Float32Array
       const sheetN = (i === 0 ? nl : nr).array as Float32Array
-      const inset = 0.6 * rig.fringe
+      const inset = 0.6 * FRINGE
       for (let r = 0; r < torn; r++) {
         const p = cl.ps[seamIdx[r]]
         const n = cl.ps[nbrIdx[r]]
@@ -821,9 +819,9 @@ function draw(rig: Rig) {
         fa[k] = p.x - ox * inset - cx
         fa[k + 1] = cy - (p.y - oy * inset)
         fa[k + 2] = p.z - oz * inset + 0.4
-        fa[k + 3] = p.x + ox * rig.fringe - cx
-        fa[k + 4] = cy - (p.y + oy * rig.fringe)
-        fa[k + 5] = p.z + oz * rig.fringe + 0.4
+        fa[k + 3] = p.x + ox * FRINGE - cx
+        fa[k + 4] = cy - (p.y + oy * FRINGE)
+        fa[k + 5] = p.z + oz * FRINGE + 0.4
         const si = 3 * seamIdx[r]
         fna[k] = fna[k + 3] = sheetN[si]
         fna[k + 1] = fna[k + 4] = sheetN[si + 1]
