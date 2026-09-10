@@ -6,9 +6,11 @@ import {
   BufferAttribute,
   BufferGeometry,
   CanvasTexture,
+  Color,
   DirectionalLight,
   DoubleSide,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   PCFShadowMap,
   PerspectiveCamera,
@@ -61,8 +63,12 @@ export type TearOptions = {
   duration: number
   /** Multiplies the whole thing. Above 1 is faster. */
   speed: number
-  /** Paper colour. "custom" applies no preset, leaving --tear-paper and --tear-fibre to you. */
-  paper: 'chalk' | 'kraft' | 'newsprint' | 'ink' | 'custom'
+  /** Paper colour. "page" takes the current page's background, so it is the page itself that tears. "custom" applies no preset, leaving --tear-paper and --tear-fibre to you. */
+  paper: 'chalk' | 'kraft' | 'newsprint' | 'ink' | 'page' | 'custom'
+  /** Length of the fibrous fringe along the torn edge, in px. 0 for a clean cut. */
+  fringe: number
+  /** "low" drops the shadow, the bump and some of the mesh for weaker devices. "auto" picks by device. */
+  quality: 'auto' | 'high' | 'low'
 }
 
 const DEFAULTS: TearOptions = {
@@ -74,6 +80,8 @@ const DEFAULTS: TearOptions = {
   duration: 0.35,
   speed: 1,
   paper: 'chalk',
+  fringe: 8,
+  quality: 'auto',
 }
 
 /** Fixed simulation step. The draw runs at the display rate; the physics does not. */
@@ -96,6 +104,8 @@ const HOLD = 0.06
 /** After this long in free fall gravity ramps up to clear stragglers; the phase ends at FALL_CAP regardless. */
 const FALL_RAMP = 0.9
 const FALL_CAP = 3
+/** How fast a bent bend-link forgets its rest length: paper keeps its creases, cloth does not. */
+const PLASTIC = 0.03
 
 type Particle = {
   x: number; y: number; z: number
@@ -105,7 +115,7 @@ type Particle = {
   on: boolean
   r: number
 }
-type Link = { a: Particle; b: Particle; rest: number; k: number; alive: boolean }
+type Link = { a: Particle; b: Particle; rest: number; k: number; alive: boolean; bend: boolean }
 type Cell = { pts: Particle[]; parity: number }
 type Cloth = {
   side: -1 | 1
@@ -118,7 +128,7 @@ type Cloth = {
   smooth: Int32Array
 }
 
-type View = { mesh: Mesh; geo: BufferGeometry }
+type View = { mesh: Mesh; geo: BufferGeometry; fringe: Mesh | null; fringeGeo: BufferGeometry | null }
 
 type Rig = {
   w: number
@@ -138,6 +148,9 @@ type Rig = {
   pull: [number, number]
   release: [number, number]
   gust: number
+  /** Where the tear hesitates on its way down, as spans of eased progress. */
+  holds: { at: number; len: number }[]
+  fringe: number
 }
 
 /** The renderer, lights and catcher plane. Made once, kept for the life of the page. */
@@ -148,8 +161,64 @@ type Gl = {
   key: DirectionalLight
   catcher: Mesh
   paper: MeshStandardMaterial
+  fibre: MeshBasicMaterial
+  low: boolean
 }
 let gl: Gl | null = null
+
+/** Where the last pointer went down, as fractions of the viewport. The seam starts above it. */
+let pointer = { x: 0.5, y: 0.4 }
+
+function lowQuality(o: TearOptions) {
+  if (o.quality !== 'auto') return o.quality === 'low'
+  const nav = navigator as Navigator & { deviceMemory?: number }
+  const phone = Math.min(screen.width, screen.height) < 820
+  return (nav.hardwareConcurrency || 8) <= 4 || (nav.deviceMemory || 8) <= 4 || phone
+}
+
+/**
+ * The fringe of fibre along a torn edge, as an alpha map: along the strip the
+ * fibres vary in length and the odd strand runs long; across it the alpha
+ * fades from the edge out to nothing.
+ */
+function fringeTexture() {
+  const W = 512, H = 64
+  const rnd = rng(11)
+  const len = new Float32Array(W)
+  const gain = new Float32Array(W)
+  let v = 0.4
+  for (let x = 0; x < W; x++) {
+    v += (rnd() - 0.5) * 0.3
+    v = Math.max(0.08, Math.min(0.7, v))
+    len[x] = v
+    // Broken, not continuous: some columns carry almost nothing.
+    gain[x] = rnd() < 0.3 ? 0.15 + rnd() * 0.3 : 0.55 + rnd() * 0.45
+  }
+  for (let k = 0; k < 36; k++) {
+    const x0 = (rnd() * W) | 0
+    len[x0] = 0.85 + rnd() * 0.15
+    gain[x0] = 1
+  }
+  const c = document.createElement('canvas')
+  c.width = W
+  c.height = H
+  const ctx = c.getContext('2d')!
+  const img = ctx.createImageData(W, H)
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const t = y / (H - 1)
+      const L = len[x]
+      const a = t < L ? Math.pow(1 - t / L, 1.6) * gain[x] : 0
+      const i = (y * W + x) * 4
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = (a * 255) | 0
+      img.data[i + 3] = 255
+    }
+  }
+  ctx.putImageData(img, 0, 0)
+  const tex = new CanvasTexture(c)
+  tex.wrapS = RepeatWrapping
+  return tex
+}
 
 /**
  * Paper, as two layers of noise. A soft mottle at a large scale, the way pulp
@@ -209,11 +278,11 @@ function paperTextures(): { map: CanvasTexture; bump: CanvasTexture } {
   return { map, bump }
 }
 
-function getGl(canvas: HTMLCanvasElement): Gl {
+function getGl(canvas: HTMLCanvasElement, low: boolean): Gl {
   if (gl) return gl
-  const renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance' })
+  const renderer = new WebGLRenderer({ canvas, alpha: true, antialias: !low, powerPreference: 'high-performance' })
   renderer.setClearColor(0x000000, 0)
-  renderer.shadowMap.enabled = true
+  renderer.shadowMap.enabled = !low
   renderer.shadowMap.type = PCFShadowMap
   const scene = new Scene()
   const camera = new PerspectiveCamera(30, 1, 1, 100000)
@@ -233,15 +302,39 @@ function getGl(canvas: HTMLCanvasElement): Gl {
     metalness: 0,
     side: DoubleSide,
     map: tex.map,
-    bumpMap: tex.bump,
+    bumpMap: low ? null : tex.bump,
     bumpScale: 0.7,
     vertexColors: true,
   })
+  // Unlit: a fuzz this thin has no meaningful normal, and lit it went black.
+  const fibre = new MeshBasicMaterial({
+    side: DoubleSide,
+    transparent: true,
+    depthWrite: false,
+    opacity: 0.85,
+    alphaMap: fringeTexture(),
+  })
   const catcher = new Mesh(new PlaneGeometry(1, 1), new ShadowMaterial({ opacity: 0.32 }))
   catcher.receiveShadow = true
-  scene.add(catcher)
-  gl = { renderer, scene, camera, key, catcher, paper }
+  if (!low) scene.add(catcher)
+  gl = { renderer, scene, camera, key, catcher, paper, fibre, low }
   return gl
+}
+
+/** The background behind the middle of the screen: the nearest painted ancestor of whatever is there. */
+function pageColour(w: number, h: number): string | null {
+  const clear = (c: string) => !c || c === 'transparent' || /^rgba\(\s*\d+,\s*\d+,\s*\d+,\s*0\)$/.test(c)
+  let el: Element | null = document.elementFromPoint(w / 2, h / 2)
+  while (el) {
+    const bg = getComputedStyle(el).backgroundColor
+    if (!clear(bg)) return bg
+    el = el.parentElement
+  }
+  for (const e of [document.body, document.documentElement]) {
+    const bg = getComputedStyle(e).backgroundColor
+    if (!clear(bg)) return bg
+  }
+  return null
 }
 
 function hash(s: string) {
@@ -266,7 +359,7 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
   if (!canvas) return null
   let g: Gl
   try {
-    g = getGl(canvas)
+    g = getGl(canvas, lowQuality(o))
   } catch {
     return null
   }
@@ -274,7 +367,7 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
 
   const w = canvas.clientWidth
   const h = canvas.clientHeight
-  g.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+  g.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, g.low ? 1 : 2))
   g.renderer.setSize(w, h, false)
   // The camera sits so that the z = 0 plane maps 1:1 onto the viewport.
   const cam = g.camera
@@ -298,9 +391,21 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
 
   const host = overlay.firstElementChild as Element
   const style = getComputedStyle(host)
-  g.paper.color.set(style.getPropertyValue('--tear-paper').trim() || '#f1ede4')
+  let colour = style.getPropertyValue('--tear-paper').trim() || '#f1ede4'
+  let fibreColour = style.getPropertyValue('--tear-fibre').trim() || '#ffffff'
+  if (o.paper === 'page') {
+    const bg = pageColour(w, h)
+    if (bg) {
+      colour = bg
+      // The torn core of coloured stock is paler than its face.
+      fibreColour = '#' + new Color(bg).lerp(new Color('#ffffff'), 0.55).getHexString()
+    }
+  }
+  g.paper.color.set(colour)
+  // Sits between the paper as lit and its paler torn core, so it reads as fibre, not a border.
+  g.fibre.color.set(new Color(colour).multiplyScalar(0.92).lerp(new Color(fibreColour), 0.45))
 
-  const cols = Math.max(8, Math.round(o.cols))
+  const cols = Math.max(8, Math.round(g.low ? Math.min(o.cols, 20) : o.cols))
   const sheetW = w * (1 + 2 * BLEED)
   const sheetH = h * (1 + BLEED_TOP + BLEED_BOTTOM)
   const cellW = sheetW / cols
@@ -318,10 +423,22 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
   const release: [number, number] = [0, 0]
   release[1 - first] = 0.04 + rand() * 0.1
   const gust = (rand() < 0.5 ? -1 : 1) * (0.15 + rand() * 0.45)
+  // Where the tear hesitates: two or three catches on the way down, then a rip to catch up.
+  const holds: { at: number; len: number }[] = []
+  for (let a = 0.12 + rand() * 0.2; a < 0.85 && holds.length < 3; a += 0.18 + rand() * 0.22) {
+    holds.push({ at: a, len: 0.035 + rand() * 0.045 })
+  }
+  // The seam starts above where the pointer went down and leans towards that
+  // point on its way, so the tear feels caused rather than played.
+  const clickCol = Math.round((Math.min(0.85, Math.max(0.15, pointer.x)) * w - x0) / cellW)
+  const clickRow = Math.round((Math.min(0.9, Math.max(0.1, pointer.y)) * h - y0) / cellH)
   const v: number[] = []
-  let c = Math.round(cols / 2 + (rand() - 0.5) * cols * 0.3)
+  let c = clickCol + Math.round((rand() - 0.5) * 2)
   for (let r = 0; r <= rows; r++) {
-    if (r > 0 && rand() < o.jag) c += rand() < 0.5 ? -1 : 1
+    if (r > 0 && rand() < o.jag) {
+      if (r <= clickRow && c !== clickCol && rand() < 0.65) c += Math.sign(clickCol - c)
+      else c += rand() < 0.5 ? -1 : 1
+    }
     c = Math.max(2, Math.min(cols - 2, c))
     v.push(c)
   }
@@ -338,9 +455,9 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
       }
     }
     const links: Link[] = []
-    const join = (a: Particle, b: Particle, k: number) => {
+    const join = (a: Particle, b: Particle, k: number, bend = false) => {
       if (!a.on || !b.on) return
-      links.push({ a, b, rest: Math.hypot(a.x - b.x, a.y - b.y), k, alive: true })
+      links.push({ a, b, rest: Math.hypot(a.x - b.x, a.y - b.y), k, alive: true, bend })
     }
     const bend = 0.3 + 0.7 * o.stiffness
     for (let r = 0; r <= rows; r++) {
@@ -351,11 +468,11 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
         if (r < rows) join(p, ps[idx(cc, r + 1)], 1)
         if (cc < cols && r < rows) join(p, ps[idx(cc + 1, r + 1)], 0.85)
         if (cc < cols && r > 0) join(p, ps[idx(cc + 1, r - 1)], 0.85)
-        if (cc + 2 <= cols) join(p, ps[idx(cc + 2, r)], bend)
-        if (r + 2 <= rows) join(p, ps[idx(cc, r + 2)], bend)
+        if (cc + 2 <= cols) join(p, ps[idx(cc + 2, r)], bend, true)
+        if (r + 2 <= rows) join(p, ps[idx(cc, r + 2)], bend, true)
         // Longer reach, so a compression buckles into a broad fold rather than a ripple per cell.
-        if (cc + 3 <= cols) join(p, ps[idx(cc + 3, r)], bend * 0.6)
-        if (r + 3 <= rows) join(p, ps[idx(cc, r + 3)], bend * 0.6)
+        if (cc + 3 <= cols) join(p, ps[idx(cc + 3, r)], bend * 0.6, true)
+        if (r + 3 <= rows) join(p, ps[idx(cc, r + 3)], bend * 0.6, true)
       }
     }
     const cells: Cell[] = []
@@ -386,7 +503,7 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
 
   const left = cloth(-1)
   const right = cloth(1)
-  const seamLinks: Link[] = left.seam.map((a, r) => ({ a, b: right.seam[r], rest: 0, k: 1, alive: true }))
+  const seamLinks: Link[] = left.seam.map((a, r) => ({ a, b: right.seam[r], rest: 0, k: 1, alive: true, bend: false }))
 
   const view = (cl: Cloth): View => {
     const geo = new BufferGeometry()
@@ -416,7 +533,37 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
     mesh.receiveShadow = true
     mesh.frustumCulled = false
     g.scene.add(mesh)
-    return { mesh, geo }
+
+    // The fringe: a strip along the seam, two vertices per row, that is drawn
+    // only where the seam has torn. Its outer edge hangs out into the gap.
+    let fringe: Mesh | null = null
+    let fringeGeo: BufferGeometry | null = null
+    if (o.fringe > 0) {
+      const n = rows + 1
+      fringeGeo = new BufferGeometry()
+      fringeGeo.setAttribute('position', new BufferAttribute(new Float32Array(n * 2 * 3), 3))
+      const fuv = new Float32Array(n * 2 * 2)
+      for (let r = 0; r < n; r++) {
+        const u = (r * cellH) / 48
+        fuv[4 * r] = u
+        fuv[4 * r + 1] = 0
+        fuv[4 * r + 2] = u
+        fuv[4 * r + 3] = 1
+      }
+      fringeGeo.setAttribute('uv', new BufferAttribute(fuv, 2))
+      const fi: number[] = []
+      for (let r = 0; r < rows; r++) {
+        const a = 2 * r, b = 2 * r + 1, c2 = 2 * r + 2, d = 2 * r + 3
+        fi.push(a, b, d, a, d, c2)
+      }
+      fringeGeo.setIndex(fi)
+      fringeGeo.setDrawRange(0, 0)
+      fringe = new Mesh(fringeGeo, g.fibre)
+      fringe.frustumCulled = false
+      fringe.renderOrder = 1
+      g.scene.add(fringe)
+    }
+    return { mesh, geo, fringe, fringeGeo }
   }
 
   const seamL = Int32Array.from(v.map((cc, r) => idx(cc, r)))
@@ -426,7 +573,7 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
 
   return {
     w, h, sheetH, rows, cloths: [left, right], seamLinks, torn: 0, views: [view(left), view(right)],
-    seamL, seamR, seamLn, seamRn, pull, release, gust,
+    seamL, seamR, seamLn, seamRn, pull, release, gust, holds, fringe: o.fringe,
   }
 }
 
@@ -434,6 +581,8 @@ function discard(g: Gl, r: Rig) {
   for (const v of r.views) {
     g.scene.remove(v.mesh)
     v.geo.dispose()
+    if (v.fringe) g.scene.remove(v.fringe)
+    v.fringeGeo?.dispose()
   }
 }
 
@@ -466,6 +615,18 @@ function step(rig: Rig, o: TearOptions, time: number, gScale = 1, wall = WALL) {
   for (let i = 0; i < ITER; i++) {
     for (const cl of rig.cloths) solve(cl.links)
     solve(rig.seamLinks)
+  }
+  // Creases stay. Once the sheet is being torn, a bend link found shorter than
+  // its rest length — the sign of a fold across it — lets its rest length creep
+  // down towards what it is, so the fold does not spring back out.
+  if (rig.torn > 0) {
+    for (const cl of rig.cloths) {
+      for (const l of cl.links) {
+        if (!l.bend) continue
+        const d = Math.hypot(l.b.x - l.a.x, l.b.y - l.a.y, l.b.z - l.a.z)
+        if (d < l.rest) l.rest += (d - l.rest) * PLASTIC
+      }
+    }
   }
   for (const cl of rig.cloths) {
     for (const p of cl.ps) {
@@ -607,6 +768,38 @@ function draw(rig: Rig) {
   }
   nl.needsUpdate = true
   nr.needsUpdate = true
+
+  // The fringe follows the torn part of each edge, hanging out into the gap
+  // along the direction from the sheet's interior to its edge.
+  if (rig.fringe > 0 && rig.torn > 0) {
+    const torn = Math.min(rows, Math.ceil(rig.torn) + 1)
+    rig.cloths.forEach((cl, i) => {
+      const v = rig.views[i]
+      if (!v.fringeGeo) return
+      const fp = v.fringeGeo.attributes.position as BufferAttribute
+      const fa = fp.array as Float32Array
+      const seamIdx = i === 0 ? rig.seamL : rig.seamR
+      const nbrIdx = i === 0 ? rig.seamLn : rig.seamRn
+      for (let r = 0; r < torn; r++) {
+        const p = cl.ps[seamIdx[r]]
+        const n = cl.ps[nbrIdx[r]]
+        let ox = p.x - n.x, oy = p.y - n.y, oz = p.z - n.z
+        const l = Math.hypot(ox, oy, oz) || 1
+        ox = (ox / l) * rig.fringe
+        oy = (oy / l) * rig.fringe
+        oz = (oz / l) * rig.fringe
+        const k = 6 * r
+        fa[k] = p.x - cx
+        fa[k + 1] = cy - p.y
+        fa[k + 2] = p.z + 0.6
+        fa[k + 3] = p.x + ox - cx
+        fa[k + 4] = cy - (p.y + oy)
+        fa[k + 5] = p.z + oz + 0.6
+      }
+      fp.needsUpdate = true
+      v.fringeGeo.setDrawRange(0, Math.max(0, torn - 1) * 6)
+    })
+  }
   gl.renderer.render(gl.scene, gl.camera)
 }
 
@@ -655,18 +848,25 @@ export const TearTransition = createTransition<TearOptions>({
   defaults: DEFAULTS,
 
   overlay: (o) => (
-    <div className={`tear ${o.paper === 'custom' ? '' : `tear-${o.paper}`}`}>
+    <div className={`tear ${o.paper === 'custom' || o.paper === 'page' ? '' : `tear-${o.paper}`}`}>
       <canvas aria-hidden />
     </div>
   ),
 
-  setup: (overlay) => {
+  setup: (overlay, options) => {
+    document.addEventListener(
+      'pointerdown',
+      (e) => {
+        pointer = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight }
+      },
+      { capture: true, passive: true },
+    )
     // Make the WebGL context while the page is idle, so the first navigation does not pay for it.
     const canvas = overlay.querySelector('canvas')
     if (!canvas) return
     const make = () => {
       try {
-        getGl(canvas)
+        getGl(canvas, lowQuality(options))
       } catch {
         /* no WebGL: prepare() will bail and the navigation goes through plainly */
       }
@@ -721,8 +921,12 @@ export const TearTransition = createTransition<TearOptions>({
       (t) => {
         if (t < HOLD) return
         const u = Math.min(1, (t - HOLD) / o.duration)
-        // Every link, the bottom one included, is cut by the time the front arrives.
-        const front = u >= 1 ? r.seamLinks.length : r.seamLinks.length * easeIn(u)
+        // The front accelerates, catching two or three times on the way and
+        // ripping ahead after each catch. Every link, the bottom one included,
+        // is cut by the time it arrives.
+        let f = easeIn(u)
+        for (const hd of r.holds) if (f > hd.at && f < hd.at + hd.len) f = hd.at
+        const front = u >= 1 ? r.seamLinks.length : r.seamLinks.length * f
         // Cut the seam down to the front, and flick the freed edges toward the viewer.
         for (let i = r.torn | 0; i < front && i < r.seamLinks.length; i++) {
           const l = r.seamLinks[i]
