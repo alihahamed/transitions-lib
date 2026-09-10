@@ -15,6 +15,7 @@ import {
   PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
+  PointLight,
   RepeatWrapping,
   Scene,
   ShadowMaterial,
@@ -37,7 +38,7 @@ import './transitions.css'
  * zero-length links between two cloths that are cut one by one; everything
  * else — the fluttering edge, the wedge opening at the top, the halves
  * curling as they fall — falls out of the simulation. Rendered with three.js:
- * a lit, smooth-shaded mesh with a paper-grain bump and a soft shadow cast
+ * a lit, smooth-shaded mesh with the tooth of art paper in a normal map and a soft shadow cast
  * onto the page beneath, so folds read as folds. The one transition in the
  * library that carries a real dependency for its drawing.
  *
@@ -142,19 +143,22 @@ type Gl = {
   key: DirectionalLight
   catcher: Mesh
   paper: MeshStandardMaterial
+  lamp: PointLight
 }
 let gl: Gl | null = null
 
 /**
- * Paper, as two layers of noise. A soft mottle at a large scale, the way pulp
- * dries unevenly, and a fine grain of short fibres on top. The colour map is
- * kept very close to white so the material colour decides the paper; the bump
- * map carries the same pattern with the fibres emphasised, for tooth.
+ * Warm textured art paper. A height field of three things — the slow mottle of
+ * pulp drying unevenly, the dimpled tooth of cold-press stock, and short fibres
+ * along the grain — becomes a normal map, so the surface catches a raking light
+ * the way real paper does. The colour map drifts between ivory and amber over
+ * the sheet, sits a little darker in the pits of the tooth, and carries the
+ * occasional dark fleck of fibre. Roughness follows the tooth: matte in the
+ * pits, a whisper of sheen on the high spots.
  */
-function paperTextures(): { map: CanvasTexture; bump: CanvasTexture; rough: CanvasTexture } {
+function paperTextures(): { map: CanvasTexture; normal: CanvasTexture; rough: CanvasTexture } {
   const N = 1024
   const rnd = rng(7)
-  // Value noise on a lattice, bilinear and tiling, at a given cell count.
   const noise = (L: number) => {
     const lattice = new Float32Array(L * L)
     for (let i = 0; i < lattice.length; i++) lattice[i] = rnd()
@@ -169,17 +173,24 @@ function paperTextures(): { map: CanvasTexture; bump: CanvasTexture; rough: Canv
       return top * (1 - sy) + bot * sy
     }
   }
-  const coarse = noise(8)
-  const mid = noise(32)
-  const fine = noise(128)
-  // Three octaves: the pulp's uneven drying, the sheet's cloudiness, and the
-  // tooth. Evaluated once into a table; three maps read from it.
-  const table = new Float32Array(N * N)
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) table[y * N + x] = 0.5 * coarse(x, y) + 0.3 * mid(x, y) + 0.2 * fine(x, y)
-  const mottle = (x: number, y: number) => table[y * N + x]
+  const coarse = noise(6)
+  const mid = noise(24)
+  const t1 = noise(160)
+  const t2 = noise(340)
+  const t3 = noise(640)
+  const mottle = new Float32Array(N * N)
+  const tooth = new Float32Array(N * N)
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const i = y * N + x
+      mottle[i] = 0.65 * coarse(x, y) + 0.35 * mid(x, y)
+      // Dimples: a sum of octaves pushed through a curve so the pits are sharp and the tops broad.
+      const t = 0.5 * t1(x, y) + 0.3 * t2(x, y) + 0.2 * t3(x, y)
+      tooth[i] = Math.pow(t, 1.7)
+    }
+  }
   const fibre = new Float32Array(N * N)
-  // Short fibres: many faint strokes at random angles, mostly along the grain.
-  for (let k = 0; k < 42000; k++) {
+  for (let k = 0; k < 30000; k++) {
     const x0 = rnd() * N, y0 = rnd() * N
     const ang = (rnd() - 0.5) * 1.4 + (rnd() < 0.5 ? 0 : Math.PI)
     const len = 6 + rnd() * 22
@@ -190,31 +201,70 @@ function paperTextures(): { map: CanvasTexture; bump: CanvasTexture; rough: Canv
       fibre[y * N + x] = Math.min(1, fibre[y * N + x] + str)
     }
   }
-  const make = (fn: (x: number, y: number) => number) => {
+  // Flecks: a few hundred dark specks of unbleached fibre, two or three texels across.
+  const fleck = new Float32Array(N * N)
+  for (let k = 0; k < 420; k++) {
+    const x0 = (rnd() * N) | 0, y0 = (rnd() * N) | 0
+    const r = 1 + (rnd() * 2) | 0
+    const str = 0.25 + rnd() * 0.45
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (dx * dx + dy * dy > r * r) continue
+      fleck[((y0 + dy) & (N - 1)) * N + ((x0 + dx) & (N - 1))] = str
+    }
+  }
+  const height = new Float32Array(N * N)
+  for (let i = 0; i < height.length; i++) height[i] = 0.6 * tooth[i] + 0.34 * mottle[i] + 0.06 * fibre[i]
+
+  const canvas = (fill: (x: number, y: number, out: Float32Array) => void) => {
     const c = document.createElement('canvas')
     c.width = c.height = N
     const ctx = c.getContext('2d')!
     const img = ctx.createImageData(N, N)
+    const px = new Float32Array(3)
     for (let y = 0; y < N; y++) {
       for (let x = 0; x < N; x++) {
-        const v = Math.max(0, Math.min(255, fn(x, y) * 255)) | 0
+        fill(x, y, px)
         const i = (y * N + x) * 4
-        img.data[i] = img.data[i + 1] = img.data[i + 2] = v
+        img.data[i] = Math.max(0, Math.min(255, px[0] * 255)) | 0
+        img.data[i + 1] = Math.max(0, Math.min(255, px[1] * 255)) | 0
+        img.data[i + 2] = Math.max(0, Math.min(255, px[2] * 255)) | 0
         img.data[i + 3] = 255
       }
     }
     ctx.putImageData(img, 0, 0)
     const tex = new CanvasTexture(c)
     tex.wrapS = tex.wrapT = RepeatWrapping
-    tex.repeat.set(1.6, 1.6)
+    tex.repeat.set(1.5, 1.5)
     tex.anisotropy = 8
     return tex
   }
-  const map = make((x, y) => 0.9 + 0.1 * mottle(x, y) - 0.07 * fibre[y * N + x] + (rnd() - 0.5) * 0.03)
-  const bump = make((x, y) => 0.5 + 0.3 * (mottle(x, y) - 0.5) + 0.45 * fibre[y * N + x] + (rnd() - 0.5) * 0.1)
-  // Slightly glossier where the pulp is dense, matte on the fibres: a hint of sheen that moves with the folds.
-  const rough = make((x, y) => 0.86 + 0.1 * (1 - mottle(x, y)) + 0.04 * fibre[y * N + x])
-  return { map, bump, rough }
+
+  // Ivory drifting to amber with the mottle, darker in the pits, flecked.
+  const map = canvas((x, y, o) => {
+    const i = y * N + x
+    const m = mottle[i]
+    const pit = (1 - tooth[i]) * 0.045
+    const dark = fibre[i] * 0.03 + fleck[i] * 0.5 + pit
+    o[0] = (0.99 * (1 - m) + 0.955 * m) - dark
+    o[1] = (0.965 * (1 - m) + 0.91 * m) - dark
+    o[2] = (0.92 * (1 - m) + 0.83 * m) - dark * 1.1
+  })
+  // Tangent-space normals from the height field, by central differences.
+  const S = 3.2
+  const normal = canvas((x, y, o) => {
+    const hx = height[y * N + ((x + 1) & (N - 1))] - height[y * N + ((x - 1) & (N - 1))]
+    const hy = height[((y + 1) & (N - 1)) * N + x] - height[((y - 1) & (N - 1)) * N + x]
+    const nx = -hx * S, ny = hy * S, nz = 1
+    const l = Math.hypot(nx, ny, nz)
+    o[0] = nx / l * 0.5 + 0.5
+    o[1] = ny / l * 0.5 + 0.5
+    o[2] = nz / l * 0.5 + 0.5
+  })
+  const rough = canvas((x, y, o) => {
+    const v = 0.78 + 0.2 * (1 - tooth[y * N + x]) + 0.05 * fibre[y * N + x]
+    o[0] = o[1] = o[2] = v
+  })
+  return { map, normal, rough }
 }
 
 function getGl(canvas: HTMLCanvasElement): Gl {
@@ -224,21 +274,24 @@ function getGl(canvas: HTMLCanvasElement): Gl {
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = PCFShadowMap
   renderer.toneMapping = NeutralToneMapping
-  renderer.toneMappingExposure = 0.92
+  renderer.toneMappingExposure = 1.0
   const scene = new Scene()
   const camera = new PerspectiveCamera(30, 1, 1, 100000)
-  // Daylight through a window: a warm key from the upper left, cool sky above, a
-  // touch of bounce from below, and a soft fill from the other side.
-  scene.add(new AmbientLight(0xffffff, 0.22))
-  scene.add(new HemisphereLight(0xe6edff, 0xcfc6b8, 0.65))
-  const key = new DirectionalLight(0xfff7ee, 2.0)
+  // A studio window: a warm key raking in from the upper left so the tooth
+  // shows, a warm lamp near it for the fall-off across the sheet, cool sky
+  // above with warm bounce below, and a soft cool fill from the other side.
+  scene.add(new AmbientLight(0xffffff, 0.26))
+  scene.add(new HemisphereLight(0xdfe6ff, 0xd8c6a6, 0.7))
+  const key = new DirectionalLight(0xfff1de, 1.7)
   key.castShadow = true
   key.shadow.mapSize.set(2048, 2048)
   key.shadow.bias = -0.0006
   key.shadow.normalBias = 2
   key.shadow.radius = 8
   scene.add(key, key.target)
-  const fill = new DirectionalLight(0xdde6ff, 0.45)
+  const lamp = new PointLight(0xffe4bd, 1, 0, 2)
+  scene.add(lamp)
+  const fill = new DirectionalLight(0xd8e2ff, 0.35)
   fill.position.set(1, -0.6, 1.5)
   scene.add(fill)
   const tex = paperTextures()
@@ -247,15 +300,15 @@ function getGl(canvas: HTMLCanvasElement): Gl {
     metalness: 0,
     side: DoubleSide,
     map: tex.map,
-    bumpMap: tex.bump,
-    bumpScale: 1.1,
+    normalMap: tex.normal,
     roughnessMap: tex.rough,
     vertexColors: true,
   })
+  paper.normalScale.set(0.7, 0.7)
   const catcher = new Mesh(new PlaneGeometry(1, 1), new ShadowMaterial({ opacity: 0.32 }))
   catcher.receiveShadow = true
   scene.add(catcher)
-  gl = { renderer, scene, camera, key, catcher, paper }
+  gl = { renderer, scene, camera, key, catcher, paper, lamp }
   return gl
 }
 
@@ -298,7 +351,12 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
   cam.lookAt(0, 0, 0)
   cam.updateProjectionMatrix()
   const big = Math.max(w, h)
-  g.key.position.set(-0.45 * w, 0.7 * h, 1.3 * big)
+  // Raking: low over the sheet from the upper left.
+  g.key.position.set(-0.7 * w, 0.8 * h, 0.55 * big)
+  const ld = 0.9 * big
+  g.lamp.position.set(-0.25 * w, 0.45 * h, ld)
+  // Physical fall-off: set so the lamp reads at about 1.1 where it is closest.
+  g.lamp.intensity = 1.1 * ld * ld
   g.key.target.position.set(0, 0, 0)
   const sc = g.key.shadow.camera
   sc.left = -0.8 * w

@@ -799,7 +799,7 @@
 /* ---------- tear ---------- */
 
 :root {
-  --tear-paper: #e9e3d6;
+  --tear-paper: #f3ebdc;
   --tear-fibre: #ffffff;
 }
 
@@ -816,6 +816,6 @@
   height: 100%;
 }
 
-.tear-chalk     { --tear-paper: #e9e3d6; --tear-fibre: #ffffff; }
+.tear-chalk     { --tear-paper: #f3ebdc; --tear-fibre: #ffffff; }
 .tear-kraft     { --tear-paper: #c9a26b; --tear-fibre: #efdfc2; }
 .tear-newsprint { --tear-paper: #d9d6cf; --tear-fibre: #f7f5f0; }
