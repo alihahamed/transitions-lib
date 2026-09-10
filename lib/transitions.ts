@@ -101,7 +101,7 @@ export default function RootLayout({ children }) {
       'Rendered with three.js. That is roughly 130KB gzipped on top of the library, the only transition that costs that, and the WebGL context is created while the page is idle so the first navigation does not pay for it.',
       'Browser back and forward are not animated \u2014 history navigation snaps.',
     ],
-    ready: false,
+    ready: true,
   },
   {
     slug: 'spaces',
