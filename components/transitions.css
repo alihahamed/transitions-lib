@@ -795,3 +795,27 @@
     animation: none;
   }
 }
+
+/* ---------- tear ---------- */
+
+:root {
+  --tear-paper: #f1ede4;
+  --tear-fibre: #ffffff;
+}
+
+.tear {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+}
+
+/* Scoped to its own canvas — see the note on `.crayon svg`. */
+.tear canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.tear-chalk     { --tear-paper: #f1ede4; --tear-fibre: #ffffff; }
+.tear-kraft     { --tear-paper: #c9a26b; --tear-fibre: #efdfc2; }
+.tear-newsprint { --tear-paper: #d9d6cf; --tear-fibre: #f7f5f0; }

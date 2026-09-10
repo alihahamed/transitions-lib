@@ -34,8 +34,10 @@ For where the work stands and what to do next, read `HANDOFF.md` first.
 - View-transition rules are `.vt-<name>::view-transition-old(root)` — no space
   before `::`. The pseudo belongs to the root element, not a descendant.
 - One engine per transition: GSAP on `transition-core` (overlay), or the View
-  Transitions API on `view-transition-core`. Never both. No three.js — the
-  registry cannot ship binaries and the library weighs ~30 KB.
+  Transitions API on `view-transition-core`. Never both. No three.js by
+  default — the library weighs ~30 KB. The one exception is `tear`, where Ali
+  chose three.js for the paper's shading with the weight known; it stays the
+  only one.
 
 ## Verifying
 

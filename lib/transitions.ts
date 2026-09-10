@@ -48,6 +48,61 @@ export type TransitionMeta = {
 
 export const transitions: TransitionMeta[] = [
   {
+    slug: 'tear',
+    name: 'Tear',
+    tagline: 'A sheet of paper comes down over the page and is torn in two.',
+    description:
+      'A sheet of paper is lowered over the page, the route swaps behind it, and the sheet is torn in two: a jagged seam races down from the top while the halves are pulled apart, then they come free and fall out of frame. The paper is a real cloth simulation \u2014 a grid of particles joined by constraints, stepped at a fixed 120Hz, with gravity, a little air lift so it billows as it drops, and the page as a wall it cannot pass behind. The tear is a row of links between two cloths cut one by one; the fluttering edge, the wedge opening at the top and the halves curling as they fall all come out of the simulation rather than being drawn. Rendered with three.js as a lit, smooth-shaded mesh with a paper-grain bump and a soft shadow cast onto the page. The one transition in the library that carries a real dependency for its drawing.',
+    engine: 'GSAP + three',
+    dependencies: ['gsap', 'next-transition-router', 'three'],
+    accent: ['#f1ede4', '#c9a26b', '#2a2723'],
+    duration: 2200,
+    usage: `import { TearTransition } from '@/components/tear'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <TearTransition>{children}</TearTransition>
+      </body>
+    </html>
+  )
+}`,
+    swatches: [
+      { name: 'chalk', from: '#f1ede4', to: '#ffffff' },
+      { name: 'kraft', from: '#c9a26b', to: '#efdfc2' },
+      { name: 'newsprint', from: '#d9d6cf', to: '#f7f5f0' },
+    ],
+    props: [
+      { name: 'children', type: 'ReactNode', def: '\u2014', description: 'Your app. Wrap the contents of <body>. (Required)' },
+      { name: 'cols', type: 'number', def: '32', description: 'Particles across the sheet. Rows follow from the aspect ratio. More is finer and costlier.' },
+      { name: 'stiffness', type: 'number', def: '0.8', description: 'How much the paper resists bending, 0.2 to 1. Low is cloth, high is card.' },
+      { name: 'gravity', type: 'number', def: '2.4', description: 'Gravity, in screen heights per second squared. Decides how fast the halves fall away.' },
+      { name: 'pull', type: 'number', def: '0.5', description: 'How fast the halves are pulled apart, in screen widths per second.' },
+      { name: 'jag', type: 'number', def: '0.6', description: 'How often the seam jogs sideways as it runs down, 0 to 1.' },
+      { name: 'duration', type: 'number', def: '0.35', description: 'Seconds the tear takes to run from top to bottom.' },
+      { name: 'speed', type: 'number', def: '1', description: 'Multiplies the whole thing. Above 1 is faster.' },
+      { name: 'paper', type: '"chalk" | "kraft" | "newsprint" | "custom"', def: '"chalk"', description: 'Paper colour. "custom" applies no preset, leaving --tear-paper and --tear-fibre to you.' },
+    ],
+    controls: [
+      { kind: 'select', key: 'paper', label: 'Paper', options: ['chalk', 'kraft', 'newsprint'], def: 'chalk' },
+      { kind: 'range', key: 'cols', label: 'Particles across', min: 12, max: 48, step: 2, def: 32 },
+      { kind: 'range', key: 'stiffness', label: 'Stiffness', min: 0.2, max: 1, step: 0.05, def: 0.8 },
+      { kind: 'range', key: 'gravity', label: 'Gravity', min: 0.8, max: 6, step: 0.2, def: 2.4 },
+      { kind: 'range', key: 'pull', label: 'Pull', min: 0, max: 1.5, step: 0.05, def: 0.5 },
+      { kind: 'range', key: 'jag', label: 'Jag', min: 0, max: 1, step: 0.05, def: 0.6 },
+      { kind: 'range', key: 'duration', label: 'Tear duration', min: 0.15, max: 1, step: 0.05, def: 0.35 },
+      { kind: 'range', key: 'speed', label: 'Speed', min: 0.4, max: 2.5, step: 0.05, def: 1 },
+    ],
+    notes: [
+      'A real simulation, not keyframes: the physics runs at a fixed 120Hz whatever the display rate, so it looks the same at 60 and 120Hz.',
+      'The seam is seeded from the path you are leaving, so a page always tears the same way.',
+      'Rendered with three.js. That is roughly 130KB gzipped on top of the library, the only transition that costs that, and the WebGL context is created while the page is idle so the first navigation does not pay for it.',
+      'Browser back and forward are not animated \u2014 history navigation snaps.',
+    ],
+    ready: false,
+  },
+  {
     slug: 'spaces',
     name: 'Spaces',
     tagline: 'The pages slide across as one strip, the way macOS switches desktops.',
