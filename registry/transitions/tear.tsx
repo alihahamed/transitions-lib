@@ -8,6 +8,8 @@ import {
   CanvasTexture,
   DirectionalLight,
   DoubleSide,
+  HemisphereLight,
+  NeutralToneMapping,
   Mesh,
   MeshStandardMaterial,
   PCFShadowMap,
@@ -39,8 +41,9 @@ import './transitions.css'
  * onto the page beneath, so folds read as folds. The one transition in the
  * library that carries a real dependency for its drawing.
  *
- * The seam is seeded from the path you are leaving, so a page always tears
- * the same way.
+ * No two tears are alike: the seam, which half comes free first, how hard
+ * each side is pulled and the gust that carries the pieces off are drawn
+ * fresh for every navigation.
  *
  *   // app/layout.tsx
  *   <TearTransition>{children}</TearTransition>
@@ -123,6 +126,10 @@ type Rig = {
   seamLinks: Link[]
   torn: number
   views: [View, View]
+  /** Per-navigation character: pull strength per side, when each side lets go, and a sideways gust. */
+  pull: [number, number]
+  release: [number, number]
+  gust: number
 }
 
 /** The renderer, lights and catcher plane. Made once, kept for the life of the page. */
@@ -142,29 +149,39 @@ let gl: Gl | null = null
  * kept very close to white so the material colour decides the paper; the bump
  * map carries the same pattern with the fibres emphasised, for tooth.
  */
-function paperTextures(): { map: CanvasTexture; bump: CanvasTexture } {
-  const N = 512
+function paperTextures(): { map: CanvasTexture; bump: CanvasTexture; rough: CanvasTexture } {
+  const N = 1024
   const rnd = rng(7)
-  // Value noise on a coarse lattice, bilinear, for the mottle.
-  const L = 16
-  const lattice = new Float32Array((L + 1) * (L + 1))
-  for (let i = 0; i < lattice.length; i++) lattice[i] = rnd()
-  const mottle = (x: number, y: number) => {
-    const fx = (x / N) * L, fy = (y / N) * L
-    const ix = Math.floor(fx), iy = Math.floor(fy)
-    const tx = fx - ix, ty = fy - iy
-    const at = (a: number, b: number) => lattice[(b % L) * (L + 1) + (a % L)]
-    const top = at(ix, iy) * (1 - tx) + at(ix + 1, iy) * tx
-    const bot = at(ix, iy + 1) * (1 - tx) + at(ix + 1, iy + 1) * tx
-    return top * (1 - ty) + bot * ty
+  // Value noise on a lattice, bilinear and tiling, at a given cell count.
+  const noise = (L: number) => {
+    const lattice = new Float32Array(L * L)
+    for (let i = 0; i < lattice.length; i++) lattice[i] = rnd()
+    return (x: number, y: number) => {
+      const fx = (x / N) * L, fy = (y / N) * L
+      const ix = Math.floor(fx), iy = Math.floor(fy)
+      const tx = fx - ix, ty = fy - iy
+      const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty)
+      const at = (a: number, b: number) => lattice[(b % L) * L + (a % L)]
+      const top = at(ix, iy) * (1 - sx) + at(ix + 1, iy) * sx
+      const bot = at(ix, iy + 1) * (1 - sx) + at(ix + 1, iy + 1) * sx
+      return top * (1 - sy) + bot * sy
+    }
   }
+  const coarse = noise(8)
+  const mid = noise(32)
+  const fine = noise(128)
+  // Three octaves: the pulp's uneven drying, the sheet's cloudiness, and the
+  // tooth. Evaluated once into a table; three maps read from it.
+  const table = new Float32Array(N * N)
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) table[y * N + x] = 0.5 * coarse(x, y) + 0.3 * mid(x, y) + 0.2 * fine(x, y)
+  const mottle = (x: number, y: number) => table[y * N + x]
   const fibre = new Float32Array(N * N)
-  // Short fibres: a few thousand faint strokes at random angles, mostly horizontal.
-  for (let k = 0; k < 9000; k++) {
+  // Short fibres: many faint strokes at random angles, mostly along the grain.
+  for (let k = 0; k < 42000; k++) {
     const x0 = rnd() * N, y0 = rnd() * N
-    const ang = (rnd() - 0.5) * 1.2 + (rnd() < 0.5 ? 0 : Math.PI)
-    const len = 4 + rnd() * 14
-    const str = 0.35 + rnd() * 0.65
+    const ang = (rnd() - 0.5) * 1.4 + (rnd() < 0.5 ? 0 : Math.PI)
+    const len = 6 + rnd() * 22
+    const str = 0.25 + rnd() * 0.5
     for (let t = 0; t < len; t++) {
       const x = ((x0 + Math.cos(ang) * t) | 0) & (N - 1)
       const y = ((y0 + Math.sin(ang) * t) | 0) & (N - 1)
@@ -187,13 +204,15 @@ function paperTextures(): { map: CanvasTexture; bump: CanvasTexture } {
     ctx.putImageData(img, 0, 0)
     const tex = new CanvasTexture(c)
     tex.wrapS = tex.wrapT = RepeatWrapping
-    tex.repeat.set(2, 2)
-    tex.anisotropy = 4
+    tex.repeat.set(1.6, 1.6)
+    tex.anisotropy = 8
     return tex
   }
-  const map = make((x, y) => 0.955 + 0.045 * mottle(x, y) - 0.03 * fibre[y * N + x] + (rnd() - 0.5) * 0.02)
-  const bump = make((x, y) => 0.5 + 0.25 * (mottle(x, y) - 0.5) + 0.3 * fibre[y * N + x] + (rnd() - 0.5) * 0.08)
-  return { map, bump }
+  const map = make((x, y) => 0.94 + 0.06 * mottle(x, y) - 0.035 * fibre[y * N + x] + (rnd() - 0.5) * 0.015)
+  const bump = make((x, y) => 0.5 + 0.3 * (mottle(x, y) - 0.5) + 0.35 * fibre[y * N + x] + (rnd() - 0.5) * 0.06)
+  // Slightly glossier where the pulp is dense, matte on the fibres: a hint of sheen that moves with the folds.
+  const rough = make((x, y) => 0.86 + 0.1 * (1 - mottle(x, y)) + 0.04 * fibre[y * N + x])
+  return { map, bump, rough }
 }
 
 function getGl(canvas: HTMLCanvasElement): Gl {
@@ -202,20 +221,35 @@ function getGl(canvas: HTMLCanvasElement): Gl {
   renderer.setClearColor(0x000000, 0)
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = PCFShadowMap
+  renderer.toneMapping = NeutralToneMapping
+  renderer.toneMappingExposure = 1.05
   const scene = new Scene()
   const camera = new PerspectiveCamera(30, 1, 1, 100000)
-  scene.add(new AmbientLight(0xffffff, 1.15))
-  const key = new DirectionalLight(0xffffff, 2.1)
+  // Daylight through a window: a warm key from the upper left, cool sky above, a
+  // touch of bounce from below, and a soft fill from the other side.
+  scene.add(new AmbientLight(0xffffff, 0.35))
+  scene.add(new HemisphereLight(0xe6edff, 0xcfc6b8, 0.9))
+  const key = new DirectionalLight(0xfff7ee, 2.4)
   key.castShadow = true
-  key.shadow.mapSize.set(1024, 1024)
-  key.shadow.bias = -0.0008
-  key.shadow.radius = 6
+  key.shadow.mapSize.set(2048, 2048)
+  key.shadow.bias = -0.0006
+  key.shadow.normalBias = 2
+  key.shadow.radius = 8
   scene.add(key, key.target)
-  const fill = new DirectionalLight(0xffffff, 0.5)
-  fill.position.set(1, -1, 2)
+  const fill = new DirectionalLight(0xdde6ff, 0.6)
+  fill.position.set(1, -0.6, 1.5)
   scene.add(fill)
   const tex = paperTextures()
-  const paper = new MeshStandardMaterial({ roughness: 0.96, metalness: 0, side: DoubleSide, map: tex.map, bumpMap: tex.bump, bumpScale: 0.35 })
+  const paper = new MeshStandardMaterial({
+    roughness: 1,
+    metalness: 0,
+    side: DoubleSide,
+    map: tex.map,
+    bumpMap: tex.bump,
+    bumpScale: 0.5,
+    roughnessMap: tex.rough,
+    vertexColors: true,
+  })
   const catcher = new Mesh(new PlaneGeometry(1, 1), new ShadowMaterial({ opacity: 0.32 }))
   catcher.receiveShadow = true
   scene.add(catcher)
@@ -290,6 +324,13 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
 
   // The seam: a column per particle row, wandering at most one cell per row.
   const rand = rng(hash(seed))
+  // How this particular tear behaves: which side lets go first, how hard each
+  // is pulled, and which way the wind is blowing as the pieces come down.
+  const first = rand() < 0.5 ? 0 : 1
+  const pull: [number, number] = [0.7 + rand() * 0.7, 0.7 + rand() * 0.7]
+  const release: [number, number] = [0, 0]
+  release[1 - first] = 0.06 + rand() * 0.16
+  const gust = (rand() < 0.5 ? -1 : 1) * (0.15 + rand() * 0.45)
   const v: number[] = []
   let c = Math.round(cols / 2 + (rand() - 0.5) * cols * 0.3)
   for (let r = 0; r <= rows; r++) {
@@ -369,6 +410,8 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
       uv[2 * i + 1] = 1 - (p.ry - y0) / sheetH
     })
     geo.setAttribute('uv', new BufferAttribute(uv, 2))
+    const col = new Float32Array(cl.ps.length * 3).fill(1)
+    geo.setAttribute('color', new BufferAttribute(col, 3))
     const index: number[] = []
     const at = (p: Particle) => cl.ps.indexOf(p)
     for (const cell of cl.cells) {
@@ -389,7 +432,7 @@ function prepare(overlay: HTMLDivElement, o: TearOptions, seed: string, previous
     return { mesh, geo }
   }
 
-  return { w, h, sheetH, rows, cloths: [left, right], seamLinks, torn: 0, views: [view(left), view(right)] }
+  return { w, h, sheetH, rows, cloths: [left, right], seamLinks, torn: 0, views: [view(left), view(right)], pull, release, gust }
 }
 
 function discard(g: Gl, r: Rig) {
@@ -402,6 +445,8 @@ function discard(g: Gl, r: Rig) {
 function step(rig: Rig, o: TearOptions) {
   const g = o.gravity * rig.h
   const zMax = 0.3 * rig.w
+  // The gust only matters once the sheet is torn and coming down.
+  const ax = rig.torn > 0 ? rig.gust * g : 0
   for (const cl of rig.cloths) {
     for (const p of cl.ps) {
       if (!p.on || p.pinned) continue
@@ -412,7 +457,7 @@ function step(rig: Rig, o: TearOptions) {
       p.px = p.x
       p.py = p.y
       p.pz = p.z
-      p.x += vx
+      p.x += vx + ax * STEP * STEP
       p.y += vy + g * STEP * STEP
       p.z += vz + az * STEP * STEP
     }
@@ -461,9 +506,10 @@ function solve(links: Link[]) {
 
 /** Kinematic pins: the hands. Every pinned particle sits at its rest position plus an offset. */
 function pin(rig: Rig, dx: number, dy: number, dz: number, perSide = false) {
-  for (const cl of rig.cloths) {
-    const sx = perSide ? cl.side * dx : dx
+  rig.cloths.forEach((cl, i) => {
+    const sx = perSide ? cl.side * dx * rig.pull[i] : dx
     for (const p of cl.pins) {
+      if (!p.pinned) continue
       p.px = p.x
       p.py = p.y
       p.pz = p.z
@@ -471,7 +517,7 @@ function pin(rig: Rig, dx: number, dy: number, dz: number, perSide = false) {
       p.y = p.ry + dy
       p.z = dz
     }
-  }
+  })
 }
 
 /**
@@ -496,16 +542,29 @@ function draw(rig: Rig) {
       arr[3 * j + 1] = cy - p.y
       arr[3 * j + 2] = p.z
     }
+    const colAttr = v.geo.attributes.color as BufferAttribute
+    const col = colAttr.array as Float32Array
     const q = cl.smooth
+    const creaseScale = 1 / (0.05 * rig.w)
     for (let k = 0; k < q.length; k += 5) {
       const p = ps[q[k]]
       const a = ps[q[k + 1]], b = ps[q[k + 2]], c = ps[q[k + 3]], d = ps[q[k + 4]]
       const j = q[k]
-      arr[3 * j] = 0.5 * p.x + 0.125 * (a.x + b.x + c.x + d.x) - cx
-      arr[3 * j + 1] = cy - (0.5 * p.y + 0.125 * (a.y + b.y + c.y + d.y))
-      arr[3 * j + 2] = 0.5 * p.z + 0.125 * (a.z + b.z + c.z + d.z)
+      const mx = 0.25 * (a.x + b.x + c.x + d.x)
+      const my = 0.25 * (a.y + b.y + c.y + d.y)
+      const mz = 0.25 * (a.z + b.z + c.z + d.z)
+      arr[3 * j] = 0.5 * (p.x + mx) - cx
+      arr[3 * j + 1] = cy - 0.5 * (p.y + my)
+      arr[3 * j + 2] = 0.5 * (p.z + mz)
+      // Where the sheet bends hard the pulp is compressed and catches less light: a crease.
+      const bendAmt = Math.hypot(p.x - mx, p.y - my, p.z - mz) * creaseScale
+      const shade = 1 - Math.min(0.28, bendAmt * bendAmt * 2.5)
+      col[3 * j] = shade
+      col[3 * j + 1] = shade
+      col[3 * j + 2] = shade
     }
     pos.needsUpdate = true
+    colAttr.needsUpdate = true
     v.geo.computeVertexNormals()
   })
   gl.renderer.render(gl.scene, gl.camera)
@@ -571,7 +630,7 @@ export const TearTransition = createTransition<TearOptions>({
   },
 
   leave: ({ overlay, options: o, done }) => {
-    rig = prepare(overlay, o, location.pathname, rig)
+    rig = prepare(overlay, o, String(Math.random()), rig)
     if (!rig) {
       done()
       return
@@ -594,13 +653,13 @@ export const TearTransition = createTransition<TearOptions>({
   },
 
   enter: ({ overlay, options: o, done }) => {
-    rig ??= prepare(overlay, o, location.pathname, null)
+    rig ??= prepare(overlay, o, String(Math.random()), null)
     if (!rig) {
       done()
       return
     }
     const r = rig
-    let released = false
+    const released = [false, false]
     const tearEnd = HOLD + o.duration
 
     return run(
@@ -623,21 +682,20 @@ export const TearTransition = createTransition<TearOptions>({
         }
         r.torn = Math.max(r.torn, front)
 
-        if (!released) {
+        if (!released[0] || !released[1]) {
           const since = t - HOLD
           const dx = o.pull * r.w * since
           const dz = Math.min(0.12 * r.w, 0.35 * r.w * since)
           pin(r, dx, 0, dz, true)
-          if (t >= tearEnd + 0.05) {
-            // The hands let go. Carry the pull's velocity into the free particles.
-            released = true
-            for (const cl of r.cloths) {
-              for (const p of cl.pins) {
-                p.pinned = false
-                p.px = p.x - cl.side * o.pull * r.w * STEP
-              }
+          r.cloths.forEach((cl, i) => {
+            if (released[i] || t < tearEnd + 0.05 + r.release[i]) return
+            // This hand lets go. Carry the pull's velocity into the freed particles.
+            released[i] = true
+            for (const p of cl.pins) {
+              p.pinned = false
+              p.px = p.x - cl.side * o.pull * r.pull[i] * r.w * STEP
             }
-          }
+          })
         }
       },
       (t) => {

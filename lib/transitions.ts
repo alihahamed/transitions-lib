@@ -96,7 +96,7 @@ export default function RootLayout({ children }) {
     ],
     notes: [
       'A real simulation, not keyframes: the physics runs at a fixed 120Hz whatever the display rate, so it looks the same at 60 and 120Hz.',
-      'The seam is seeded from the path you are leaving, so a page always tears the same way.',
+      'No two tears are alike. The seam, which half comes free first, how hard each side is pulled and the gust that carries the pieces off are drawn fresh for every navigation.',
       'Rendered with three.js. That is roughly 130KB gzipped on top of the library, the only transition that costs that, and the WebGL context is created while the page is idle so the first navigation does not pay for it.',
       'Browser back and forward are not animated \u2014 history navigation snaps.',
     ],
